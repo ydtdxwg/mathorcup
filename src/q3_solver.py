@@ -48,6 +48,17 @@ class RouteEvaluation:
 
 
 @dataclass(frozen=True, slots=True)
+class ClusterIterationLog:
+    """One local async-routing iteration snapshot."""
+
+    iteration: int
+    route: List[int]
+    travel_cost: float
+    total_penalty: float
+    objective: float
+
+
+@dataclass(frozen=True, slots=True)
 class ClusterSolveResult:
     """Local cluster solution after asynchronous weight updates."""
 
@@ -61,6 +72,7 @@ class ClusterSolveResult:
     finish_time: float
     iterations: int
     weight_matrix: np.ndarray
+    iteration_logs: List[ClusterIterationLog]
 
     @property
     def entry_node(self) -> int:
@@ -120,13 +132,55 @@ class GraphClusterer:
     def cluster(self) -> ClusterPartition:
         affinity = self.build_affinity_matrix()
         labels = SpectralClustering(n_clusters=self._n_clusters, affinity="precomputed", random_state=self._random_state, assign_labels="kmeans").fit_predict(affinity)
-        clusters: Dict[int, List[int]] = {k: [] for k in range(self._n_clusters)}
+        initial_clusters: Dict[int, List[int]] = {k: [] for k in range(self._n_clusters)}
         for idx, customer_id in enumerate(self._instance.customer_ids):
-            clusters[int(labels[idx])].append(customer_id)
-        clusters = {k: sorted(v) for k, v in clusters.items() if v}
+            initial_clusters[int(labels[idx])].append(customer_id)
+        clusters = self._refine_cluster_sizes(initial_clusters, affinity)
+        refined_labels = np.full(self._instance.customer_count, -1, dtype=int)
+        for cluster_id, node_ids in clusters.items():
+            for node_id in node_ids:
+                refined_labels[node_id - 1] = cluster_id
         demands = np.asarray([node.demand for node in self._instance.customers], dtype=np.float64)
-        quality = self.evaluate_quality(affinity, labels, demands)
-        return ClusterPartition(labels, clusters, affinity, quality)
+        quality = self.evaluate_quality(affinity, refined_labels, demands)
+        return ClusterPartition(refined_labels, clusters, affinity, quality)
+
+    def _refine_cluster_sizes(self, initial_clusters: Dict[int, List[int]], affinity_matrix: np.ndarray, max_cluster_size: int = 15) -> Dict[int, List[int]]:
+        """Split oversized spectral clusters so every local solver subproblem stays feasible."""
+
+        refined: Dict[int, List[int]] = {}
+        next_cluster_id = 0
+        for node_ids in initial_clusters.values():
+            if not node_ids:
+                continue
+            if len(node_ids) <= max_cluster_size:
+                refined[next_cluster_id] = sorted(node_ids)
+                next_cluster_id += 1
+                continue
+            ordered_nodes = self._order_cluster_nodes(node_ids, affinity_matrix)
+            for start in range(0, len(ordered_nodes), max_cluster_size):
+                refined[next_cluster_id] = sorted(ordered_nodes[start:start + max_cluster_size])
+                next_cluster_id += 1
+        return refined
+
+    def _order_cluster_nodes(self, node_ids: Sequence[int], affinity_matrix: np.ndarray) -> List[int]:
+        """Order nodes by internal affinity so chunking preserves local coherence."""
+
+        remaining = list(node_ids)
+        if len(remaining) <= 1:
+            return remaining
+        sub_idx = np.asarray([node_id - 1 for node_id in remaining], dtype=int)
+        sub_affinity = affinity_matrix[np.ix_(sub_idx, sub_idx)]
+        degrees = np.sum(sub_affinity, axis=1)
+        start_pos = int(np.argmax(degrees))
+        ordered = [remaining.pop(start_pos)]
+        while remaining:
+            last_node = ordered[-1]
+            best_pos = max(
+                range(len(remaining)),
+                key=lambda pos: affinity_matrix[last_node - 1, remaining[pos] - 1],
+            )
+            ordered.append(remaining.pop(best_pos))
+        return ordered
 
     @staticmethod
     def evaluate_quality(affinity_matrix: np.ndarray, labels: np.ndarray, demands: np.ndarray) -> ClusterQuality:
@@ -171,10 +225,12 @@ class AsyncClusterSolver:
         best_weights = current.copy()
         last_penalty: float | None = None
         used_iterations = 0
+        iteration_logs: List[ClusterIterationLog] = []
         for k in range(1, self._max_iterations + 1):
             used_iterations = k
             route = self._mock_quantum_tsp_solver(current)
             evaluation = self._evaluate_time_penalties(route)
+            iteration_logs.append(ClusterIterationLog(k, list(route), evaluation.travel_cost, evaluation.total_penalty, evaluation.objective))
             if best_eval is None or evaluation.objective < best_eval.objective:
                 best_eval = evaluation
                 best_weights = current.copy()
@@ -186,7 +242,7 @@ class AsyncClusterSolver:
             last_penalty = evaluation.total_penalty
         if best_eval is None:
             raise RuntimeError("Failed to obtain a cluster route.")
-        return ClusterSolveResult(cluster_id, best_eval.route, best_eval.arrival_times, best_eval.penalties, best_eval.total_penalty, best_eval.travel_cost, best_eval.objective, best_eval.finish_time, used_iterations, best_weights)
+        return ClusterSolveResult(cluster_id, best_eval.route, best_eval.arrival_times, best_eval.penalties, best_eval.total_penalty, best_eval.travel_cost, best_eval.objective, best_eval.finish_time, used_iterations, best_weights, iteration_logs)
 
     def _submatrix(self) -> np.ndarray:
         idx = np.asarray(self._cluster_node_ids, dtype=int)
@@ -272,13 +328,18 @@ class GlobalStitcher:
     def __init__(self, instance: LogisticsInstance, cluster_results: Sequence[ClusterSolveResult]) -> None:
         self._instance = instance
         self._cluster_results = list(cluster_results)
+        self._supernode_to_cluster_id: Dict[int, int] = {
+            supernode_idx: result.cluster_id
+            for supernode_idx, result in enumerate(self._cluster_results, start=1)
+        }
 
     def stitch(self) -> GlobalRouteResult:
         matrix = self.build_supernode_cost_matrix()
         order = self._solve_supernode_tsp(matrix)
         by_id = {result.cluster_id: result for result in self._cluster_results}
         route: List[int] = []
-        for cluster_id in order[1:]:
+        for supernode_idx in order[1:]:
+            cluster_id = self._supernode_to_cluster_id[supernode_idx]
             route.extend(by_id[cluster_id].route)
         evaluation = self._evaluate_full_route(route)
         return GlobalRouteResult(order, route, evaluation.arrival_times, evaluation.penalties, evaluation.total_penalty, evaluation.travel_cost, evaluation.objective)
@@ -397,4 +458,4 @@ class Q3Solver:
         return Q3Solution(partition, cluster_results, global_result)
 
 
-__all__: List[str] = ["AsyncClusterSolver", "ClusterPartition", "ClusterQuality", "ClusterSolveResult", "GlobalRouteResult", "GlobalStitcher", "GraphClusterer", "Q3Solution", "Q3Solver", "RouteEvaluation"]
+__all__: List[str] = ["AsyncClusterSolver", "ClusterIterationLog", "ClusterPartition", "ClusterQuality", "ClusterSolveResult", "GlobalRouteResult", "GlobalStitcher", "GraphClusterer", "Q3Solution", "Q3Solver", "RouteEvaluation"]

@@ -45,6 +45,21 @@ class PricingResult:
 
 
 @dataclass(frozen=True, slots=True)
+class PricingIterationLog:
+    """One column-generation iteration snapshot."""
+
+    iteration: int
+    objective_lp: float
+    reduced_cost: float
+    selected_nodes: List[int]
+    candidate_route: List[int] | None
+    column_added: bool
+    duplicate_column: bool
+    no_improve_streak: int
+    column_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class EngineResult:
     """Final root-node price-and-branch result for one `V_max`."""
 
@@ -53,6 +68,7 @@ class EngineResult:
     columns: List[RouteColumn]
     lambda_lp: Dict[int, float]
     lambda_ip: Dict[int, float] | None
+    iteration_logs: List[PricingIterationLog]
 
 
 class MasterProblem:
@@ -238,20 +254,36 @@ class QCGEngine:
         no_improve = 0
         objective_lp = float("inf")
         lambda_lp: Dict[int, float] = {}
-        for _ in range(self._max_iterations):
+        iteration_logs: List[PricingIterationLog] = []
+        for iteration in range(1, self._max_iterations + 1):
             master = MasterProblem(self._instance, self._columns, v_max)
             objective_lp, lambda_lp = master.solve_relaxation()
             pi_duals, mu_dual = master.get_dual_variables()
             pricing = PricingSubproblem(self._instance, self._compatibility_graph, pi_duals, mu_dual).solve()
-            if pricing.column is None or self._column_exists(pricing.column):
+            duplicate_column = pricing.column is not None and self._column_exists(pricing.column)
+            column_added = pricing.column is not None and not duplicate_column
+            if column_added:
+                self._columns.append(pricing.column)
+                no_improve = 0
+            else:
                 no_improve += 1
-                if no_improve >= self._max_no_improve:
-                    break
-                continue
-            self._columns.append(pricing.column)
-            no_improve = 0
+            iteration_logs.append(
+                PricingIterationLog(
+                    iteration=iteration,
+                    objective_lp=objective_lp,
+                    reduced_cost=pricing.reduced_cost,
+                    selected_nodes=list(pricing.selected_nodes),
+                    candidate_route=None if pricing.column is None else list(pricing.column.route),
+                    column_added=column_added,
+                    duplicate_column=duplicate_column,
+                    no_improve_streak=no_improve,
+                    column_count=len(self._columns),
+                )
+            )
+            if not column_added and no_improve >= self._max_no_improve:
+                break
         objective_ip, lambda_ip = self.recover_integer_solution(v_max)
-        return EngineResult(objective_lp, objective_ip, list(self._columns), lambda_lp, lambda_ip)
+        return EngineResult(objective_lp, objective_ip, list(self._columns), lambda_lp, lambda_ip, iteration_logs)
 
     def recover_integer_solution(self, v_max: int) -> tuple[float | None, Dict[int, float] | None]:
         """Heuristic Price-and-Branch recovery on the final column pool."""
@@ -308,4 +340,4 @@ class QCGEngine:
         return any(tuple(column.route) == signature for column in self._columns)
 
 
-__all__: List[str] = ["EngineResult", "MasterProblem", "PricingResult", "PricingSubproblem", "QCGEngine", "RouteColumn"]
+__all__: List[str] = ["EngineResult", "MasterProblem", "PricingIterationLog", "PricingResult", "PricingSubproblem", "QCGEngine", "RouteColumn"]
