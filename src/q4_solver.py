@@ -11,6 +11,10 @@ from data_pipeline import DataValidationError, LogisticsInstance, TemporalCompat
 from q3_solver import AsyncClusterSolver
 
 
+BIG_M_PENALTY: float = 1_000_000.0
+VEHICLE_FIXED_COST: float = 10_000.0
+
+
 @dataclass(frozen=True, slots=True)
 class RouteColumn:
     """One route column in the set-partitioning master problem.
@@ -48,12 +52,12 @@ class EngineResult:
 
 
 class MasterProblem:
-    """Restricted master problem for CVRP-TW set partitioning.
+    """Restricted master problem for CVRP-TW set covering.
 
     The LP relaxation is
     \[\min \sum_{r\in\Omega} c_r\lambda_r\]
-    subject to exact customer coverage and a vehicle-count cap
-    \[\sum_{r\in\Omega} a_{ir}\lambda_r = 1,\quad \sum_{r\in\Omega}\lambda_r\le V_{max},\quad \lambda_r\ge 0.\]
+    subject to customer covering and a vehicle-count cap
+    \[\sum_{r\in\Omega} a_{ir}\lambda_r \ge 1,\quad \sum_{r\in\Omega}\lambda_r\le V_{max},\quad \lambda_r\ge 0.\]
     """
 
     def __init__(self, instance: LogisticsInstance, columns: Sequence[RouteColumn], v_max: int) -> None:
@@ -99,7 +103,7 @@ class MasterProblem:
         model.setObjective(gp.quicksum(self._columns[idx].cost * lambdas[idx] for idx in lambdas), GRB.MINIMIZE)
         cover_constraints: List[gp.Constr] = []
         for customer_id in self._instance.customer_ids:
-            constr = model.addConstr(gp.quicksum(lambdas[idx] for idx, column in enumerate(self._columns) if customer_id in column.customers) == 1.0, name=f"cover_{customer_id}")
+            constr = model.addConstr(gp.quicksum(lambdas[idx] for idx, column in enumerate(self._columns) if customer_id in column.customers) >= 1.0, name=f"cover_{customer_id}")
             cover_constraints.append(constr)
         model.addConstr(gp.quicksum(lambdas.values()) <= self._v_max, name="vehicle_limit")
         return model, lambdas, cover_constraints
@@ -195,7 +199,7 @@ class PricingSubproblem:
             current_time += prev.service_time + travel
             penalties += self._node_penalty(node_id, current_time)
         travel_cost += float(self._instance.travel_time_matrix[route[-1], 0])
-        cost = travel_cost + penalties
+        cost = travel_cost + penalties + VEHICLE_FIXED_COST
         return RouteColumn(route=list(route), customers=sorted(route), cost=cost, load=load)
 
     def _node_penalty(self, node_id: int, arrival_time: float) -> float:
@@ -257,7 +261,7 @@ class QCGEngine:
         return results
 
     def _initialize_columns(self, v_max: int) -> List[RouteColumn]:
-        """Build an initial feasible pool via sequential capacity-respecting cuts."""
+        """Build an initial feasible pool via sequential cuts plus artificial columns."""
 
         columns: List[RouteColumn] = []
         remaining = sorted(self._instance.customer_ids, key=lambda node_id: self._instance.get_node(node_id).ready_time)
@@ -271,14 +275,14 @@ class QCGEngine:
                     load += demand
                     remaining.remove(node_id)
             columns.append(self._build_initial_column(route))
-        if len(columns) > v_max:
-            raise RuntimeError("Initial column pool requires more vehicles than V_max.")
+        for node_id in self._instance.customer_ids:
+            columns.append(RouteColumn(route=[node_id], customers=[node_id], cost=BIG_M_PENALTY, load=self._instance.get_node(node_id).demand))
         return columns
 
     def _build_initial_column(self, route: Sequence[int]) -> RouteColumn:
         result = AsyncClusterSolver(self._instance, route).solve(cluster_id=-1)
         travel_cost = float(self._depot_augmented_cost(result.route))
-        cost = travel_cost + result.total_penalty
+        cost = travel_cost + result.total_penalty + VEHICLE_FIXED_COST
         load = float(sum(self._instance.get_node(node_id).demand for node_id in result.route))
         return RouteColumn(route=list(result.route), customers=sorted(result.route), cost=cost, load=load)
 
