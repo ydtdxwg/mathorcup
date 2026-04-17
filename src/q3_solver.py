@@ -259,8 +259,7 @@ class AsyncClusterSolver:
         for prev_id, node_id in zip(route[:-1], route[1:]):
             i = local_pos[prev_id]
             j = local_pos[node_id]
-            travel = max(float(self._instance.travel_time_matrix[prev_id, node_id]), 1e-6)
-            delta[i, j] += penalties[node_id] / travel
+            delta[i, j] += penalties[node_id]
         return delta
 
 
