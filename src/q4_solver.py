@@ -7,8 +7,12 @@ import gurobipy as gp
 import numpy as np
 from gurobipy import GRB
 
-from data_pipeline import DataValidationError, LogisticsInstance, TemporalCompatibilityGraph
-from q3_solver import AsyncClusterSolver
+try:
+    from .data_pipeline import DataValidationError, LogisticsInstance, TemporalCompatibilityGraph
+    from .q3_solver import AsyncClusterSolver
+except ImportError:
+    from data_pipeline import DataValidationError, LogisticsInstance, TemporalCompatibilityGraph
+    from q3_solver import AsyncClusterSolver
 
 
 BIG_M_PENALTY: float = 1_000_000.0

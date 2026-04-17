@@ -10,7 +10,10 @@ import numpy as np
 from gurobipy import GRB
 from sklearn.cluster import SpectralClustering
 
-from data_pipeline import DataValidationError, LogisticsInstance, TemporalCompatibilityGraph
+try:
+    from .data_pipeline import DataValidationError, LogisticsInstance, TemporalCompatibilityGraph
+except ImportError:
+    from data_pipeline import DataValidationError, LogisticsInstance, TemporalCompatibilityGraph
 
 
 @dataclass(frozen=True, slots=True)
