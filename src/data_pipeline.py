@@ -19,21 +19,38 @@ class CustomerNode:
     """Customer node.
 
     For node \(i\), fields are demand \(q_i\), ready time \(a_i\), due time
-    \(b_i\), and service time \(s_i\). Compatibility preprocessing assumes
-    service at node \(i\) starts at \(a_i\), so arrival at node \(j\) is
-    \(t_j=a_i+s_i+d_{ij}\).
+    \(b_i\), and base service time \(\bar{s}_i\). Compatibility preprocessing uses
+    the dynamic service-time interface `service_time`, which currently returns the
+    baseline value but keeps the model extensible for later stochastic or state-
+    dependent service corrections.
+
+    Under the earliest-start approximation, arrival at node \(j\) after serving
+    node \(i\) is \(t_j=a_i+s_i+d_{ij}\), where \(s_i\) is obtained from the
+    dynamic property.
     """
 
     id: int
     demand: float
     ready_time: float
     due_time: float
-    service_time: float
+    base_service_time: float
+
+    @property
+    def service_time(self) -> float:
+        """Return the current service time.
+
+        At this stage the benchmark provides a deterministic baseline service time,
+        so the dynamic interface returns `base_service_time`. Keeping access behind
+        a property avoids hard-coding the service duration as a permanently static
+        field and leaves room for later dynamic overrides.
+        """
+
+        return self.base_service_time
 
     def __post_init__(self) -> None:
         if self.id < 0:
             raise DataValidationError(f"Invalid node id: {self.id}.")
-        if min(self.demand, self.ready_time, self.due_time, self.service_time) < 0:
+        if min(self.demand, self.ready_time, self.due_time, self.base_service_time) < 0:
             raise DataValidationError(f"Node {self.id} contains negative attributes.")
         if self.ready_time > self.due_time:
             raise DataValidationError(f"Node {self.id} has ready_time > due_time.")
@@ -117,7 +134,7 @@ class DataLoader:
                 id=self._as_int(row[0], f"row {row_idx} node_id"),
                 ready_time=self._as_float(row[1], f"row {row_idx} ready_time"),
                 due_time=self._as_float(row[2], f"row {row_idx} due_time"),
-                service_time=self._as_float(row[3], f"row {row_idx} service_time"),
+                base_service_time=self._as_float(row[3], f"row {row_idx} service_time"),
                 demand=self._as_float(row[4], f"row {row_idx} demand"),
             )
             nodes.append(node)
@@ -294,6 +311,7 @@ class TemporalCompatibilityGraph:
             raise DataValidationError(f"Compatibility matrix must have shape {expected}.")
         affinity = np.maximum(matrix, 0.0)
         np.fill_diagonal(affinity, 1.0)
+        affinity = 0.5 * (affinity + affinity.T)
         model = SpectralClustering(n_clusters=n_clusters, affinity="precomputed", random_state=random_state, assign_labels="kmeans")
         return model.fit_predict(affinity)
 
