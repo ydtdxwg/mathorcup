@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from src.data_pipeline import DataLoader, TemporalCompatibilityGraph
@@ -15,7 +16,9 @@ def main() -> None:
     print(f"数据加载成功! 客户节点数: {instance.customer_count}, 车辆额定容量: {instance.capacity}")
 
     print("\n=== 构建时空相容性图 ===")
-    comp_graph = TemporalCompatibilityGraph(instance, alpha=1.0, beta=1.0)
+    alpha = 1.0
+    beta = 1.0
+    comp_graph = TemporalCompatibilityGraph(instance, alpha=alpha, beta=beta)
 
     print("\n=== 开始求解第三问 (50节点单车时空聚类-量子协同) ===")
     q3_solver = Q3Solver(instance, comp_graph, n_clusters=5, local_max_iterations=15)
@@ -43,6 +46,34 @@ def main() -> None:
             print(f" -> 允许最多 {v_max} 辆车时, 综合最优成本为: {obj:.2f}")
         else:
             print(f" -> 允许最多 {v_max} 辆车时, 无法找到可行解 (Infeasible)")
+
+    result_payload = {
+        "excel_path": str(excel_path),
+        "instance": {
+            "customer_count": instance.customer_count,
+            "capacity": instance.capacity,
+            "total_demand": total_demand,
+        },
+        "compatibility_parameters": {
+            "alpha": alpha,
+            "beta": beta,
+        },
+        "q3": {
+            "objective": q3_solution.global_result.objective,
+            "travel_cost": q3_solution.global_result.travel_cost,
+            "total_penalty": q3_solution.global_result.total_penalty,
+            "route": q3_solution.global_result.route,
+            "supernode_order": q3_solution.global_result.supernode_order,
+        },
+        "q4": {
+            "tested_vehicle_limits": test_vehicle_limits,
+            "sensitivity_results": sensitivity_results,
+        },
+    }
+
+    output_path = Path("advanced_solver_results.json")
+    output_path.write_text(json.dumps(result_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"\n结果已保存到: {output_path}")
 
 
 if __name__ == "__main__":
