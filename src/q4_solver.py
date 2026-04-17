@@ -72,30 +72,33 @@ class MasterProblem:
         return list(self._columns)
 
     def solve_relaxation(self) -> tuple[float, Dict[int, float]]:
-        model, lambdas, _ = self._build_model(binary=False)
+        model, lambdas, cover_constraints, vehicle_constraint = self._build_model(binary=False)
         model.optimize()
         if model.Status != GRB.OPTIMAL:
             raise RuntimeError("RMP relaxation is infeasible or not optimal.")
         values = {idx: float(var.X) for idx, var in lambdas.items()}
         self._last_model = model
-        self._last_cover_constraints = _
+        self._last_cover_constraints = cover_constraints
+        self._last_vehicle_constraint = vehicle_constraint
         return float(model.ObjVal), values
 
-    def get_dual_variables(self) -> np.ndarray:
-        """Return coverage-constraint duals \(\pi\) after LP optimization."""
+    def get_dual_variables(self) -> tuple[np.ndarray, float]:
+        """Return coverage duals \(\pi\) and vehicle-limit dual \(\mu\)."""
 
-        if not hasattr(self, "_last_cover_constraints"):
+        if not hasattr(self, "_last_cover_constraints") or not hasattr(self, "_last_vehicle_constraint"):
             raise RuntimeError("solve_relaxation() must be called before get_dual_variables().")
-        return np.asarray([float(constr.Pi) for constr in self._last_cover_constraints], dtype=np.float64)
+        pi = np.asarray([float(constr.Pi) for constr in self._last_cover_constraints], dtype=np.float64)
+        mu = float(self._last_vehicle_constraint.Pi)
+        return pi, mu
 
     def solve_integer(self) -> tuple[float | None, Dict[int, float] | None]:
-        model, lambdas, _ = self._build_model(binary=True)
+        model, lambdas, _, _ = self._build_model(binary=True)
         model.optimize()
         if model.Status != GRB.OPTIMAL:
             return None, None
         return float(model.ObjVal), {idx: float(var.X) for idx, var in lambdas.items()}
 
-    def _build_model(self, binary: bool) -> tuple[gp.Model, Dict[int, gp.Var], List[gp.Constr]]:
+    def _build_model(self, binary: bool) -> tuple[gp.Model, Dict[int, gp.Var], List[gp.Constr], gp.Constr]:
         model = gp.Model("q4_rmp")
         model.Params.OutputFlag = 0
         vtype = GRB.BINARY if binary else GRB.CONTINUOUS
@@ -105,8 +108,8 @@ class MasterProblem:
         for customer_id in self._instance.customer_ids:
             constr = model.addConstr(gp.quicksum(lambdas[idx] for idx, column in enumerate(self._columns) if customer_id in column.customers) >= 1.0, name=f"cover_{customer_id}")
             cover_constraints.append(constr)
-        model.addConstr(gp.quicksum(lambdas.values()) <= self._v_max, name="vehicle_limit")
-        return model, lambdas, cover_constraints
+        vehicle_constraint = model.addConstr(gp.quicksum(lambdas.values()) <= self._v_max, name="vehicle_limit")
+        return model, lambdas, cover_constraints, vehicle_constraint
 
 
 class PricingSubproblem:
@@ -118,10 +121,11 @@ class PricingSubproblem:
     computed against the current dual vector.
     """
 
-    def __init__(self, instance: LogisticsInstance, compatibility_graph: TemporalCompatibilityGraph, duals: np.ndarray) -> None:
+    def __init__(self, instance: LogisticsInstance, compatibility_graph: TemporalCompatibilityGraph, duals: np.ndarray, mu: float) -> None:
         self._instance = instance
         self._compatibility_graph = compatibility_graph
         self._duals = duals.astype(np.float64)
+        self._mu = float(mu)
         self._capacity = int(round(instance.capacity))
 
     def solve(self) -> PricingResult:
@@ -131,7 +135,7 @@ class PricingSubproblem:
             return PricingResult([], None, 0.0)
         result = AsyncClusterSolver(self._instance, selected).solve(cluster_id=-1)
         column = self._build_column(result.route)
-        reduced_cost = column.cost - float(np.sum(self._duals[np.asarray(column.customers) - 1]))
+        reduced_cost = column.cost - float(np.sum(self._duals[np.asarray(column.customers) - 1])) - self._mu
         return PricingResult(selected, column if reduced_cost < -1e-5 else None, reduced_cost)
 
     def _node_scores(self) -> Dict[int, float]:
@@ -233,8 +237,8 @@ class QCGEngine:
         for _ in range(self._max_iterations):
             master = MasterProblem(self._instance, self._columns, v_max)
             objective_lp, lambda_lp = master.solve_relaxation()
-            duals = master.get_dual_variables()
-            pricing = PricingSubproblem(self._instance, self._compatibility_graph, duals).solve()
+            pi_duals, mu_dual = master.get_dual_variables()
+            pricing = PricingSubproblem(self._instance, self._compatibility_graph, pi_duals, mu_dual).solve()
             if pricing.column is None or self._column_exists(pricing.column):
                 no_improve += 1
                 if no_improve >= self._max_no_improve:
