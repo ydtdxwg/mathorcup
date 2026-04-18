@@ -19,6 +19,42 @@ def main() -> None:
         print(message)
         log_lines.append(message)
 
+    def q3_progress(event: dict) -> None:
+        stage = event.get("stage")
+        if stage == "cluster_partition_ready":
+            log(
+                f"[Q3 实时] 聚类完成 | 子簇数={event['cluster_count']} | "
+                f"簇规模={event['cluster_sizes']}"
+            )
+        elif stage == "cluster_start":
+            log(
+                f"[Q3 实时] 开始子簇 {event['cluster_index']}/{event['cluster_count']} | "
+                f"cluster_id={event['cluster_id']} | 节点数={event['node_count']} | 节点={event['node_ids']}"
+            )
+        elif stage == "cluster_iteration":
+            log(
+                f"[Q3 实时] 子簇 {event['cluster_id']} 迭代 {event['iteration']}/{event['max_iterations']} | "
+                f"mode={event['solver_mode']} | objective={event['objective']:.2f} | "
+                f"travel={event['travel_cost']:.2f} | penalty={event['total_penalty']:.2f}"
+            )
+            log(f"            -> {event['solver_message']}")
+        elif stage == "cluster_complete":
+            log(
+                f"[Q3 实时] 完成子簇 {event['cluster_index']}/{event['cluster_count']} | "
+                f"cluster_id={event['cluster_id']} | iterations={event['iterations']} | "
+                f"objective={event['objective']:.2f} | "
+                f"量子状态={'Kaiwu成功' if event['quantum_used'] else '经典回退'}"
+            )
+            log(f"            -> {event['quantum_message']}")
+        elif stage == "global_stitch_start":
+            log(f"[Q3 实时] 开始全局拼接 | 子簇数={event['cluster_count']}")
+        elif stage == "global_stitch_complete":
+            log(
+                f"[Q3 实时] 全局拼接完成 | objective={event['objective']:.2f} | "
+                f"travel={event['travel_cost']:.2f} | penalty={event['total_penalty']:.2f} | "
+                f"route_length={event['route_length']}"
+            )
+
     log("=== 初始化数据管线 ===")
     excel_path = Path("参考算例.xlsx")
     loader = DataLoader(excel_path)
@@ -33,7 +69,7 @@ def main() -> None:
 
     log("\n=== 开始求解第三问 (50节点单车时空聚类-量子协同) ===")
     q3_start = time.perf_counter()
-    q3_solver = Q3Solver(instance, comp_graph, n_clusters=5, local_max_iterations=15)
+    q3_solver = Q3Solver(instance, comp_graph, n_clusters=5, local_max_iterations=15, progress_callback=q3_progress)
     q3_solution = q3_solver.solve()
     q3_elapsed = time.perf_counter() - q3_start
 

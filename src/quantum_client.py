@@ -26,7 +26,7 @@ class QuantumTSPSolver:
             return [node_ids[0]]
 
         x = kw.core.ndarray([n, n], "x", kw.core.Binary)
-        qubo_model = kw.QuboModel()
+        qubo_model = self._create_qubo_model()
         obj = kw.core.quicksum(
             [
                 float(dist_matrix[i, j]) * x[i, t] * x[j, (t + 1) % n]
@@ -78,6 +78,14 @@ class QuantumTSPSolver:
         plt.tight_layout()
         plt.savefig(output_path, dpi=200, bbox_inches="tight")
         plt.close()
+
+    def _create_qubo_model(self) -> object:
+        qubo_model_cls = getattr(kw, "QuboModel", None)
+        if qubo_model_cls is None:
+            qubo_model_cls = getattr(kw.qubo, "QuboModel", None)
+        if qubo_model_cls is None:
+            raise RuntimeError("Kaiwu SDK 未暴露 QuboModel，请检查安装版本。")
+        return qubo_model_cls()
 
     def _solution_value(self, sol_dict: dict, variable: object, i: int, t: int) -> float:
         raw = sol_dict.get(variable)

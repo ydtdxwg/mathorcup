@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import sqrt
-from typing import Dict, List, Sequence
+from typing import Callable, Dict, List, Sequence
 
 import gurobipy as gp
 import networkx as nx
@@ -214,11 +214,12 @@ class AsyncClusterSolver:
     \(w^{k+1}_{ij}=t_{ij}+\max(0,0.9(w^k_{ij}-t_{ij})+k^{-1/2}\Delta w_{ij})\).
     """
 
-    def __init__(self, instance: LogisticsInstance, cluster_node_ids: Sequence[int], max_iterations: int = 20, tolerance: float = 1e-3) -> None:
+    def __init__(self, instance: LogisticsInstance, cluster_node_ids: Sequence[int], max_iterations: int = 20, tolerance: float = 1e-3, progress_callback: Callable[[dict], None] | None = None) -> None:
         self._instance = instance
         self._cluster_node_ids = list(cluster_node_ids)
         self._max_iterations = max_iterations
         self._tolerance = tolerance
+        self._progress_callback = progress_callback
         self._quantum_solver = QuantumTSPSolver()
         self._hamiltonian_plotted = False
         self._last_solver_mode = "uninitialized"
@@ -251,6 +252,22 @@ class AsyncClusterSolver:
                     self._last_solver_message,
                 )
             )
+            if self._progress_callback is not None:
+                self._progress_callback(
+                    {
+                        "stage": "cluster_iteration",
+                        "cluster_id": cluster_id,
+                        "iteration": k,
+                        "max_iterations": self._max_iterations,
+                        "node_count": len(self._cluster_node_ids),
+                        "solver_mode": self._last_solver_mode,
+                        "solver_message": self._last_solver_message,
+                        "travel_cost": evaluation.travel_cost,
+                        "total_penalty": evaluation.total_penalty,
+                        "objective": evaluation.objective,
+                        "route": list(route),
+                    }
+                )
             if best_eval is None or evaluation.objective < best_eval.objective:
                 best_eval = evaluation
                 best_weights = current.copy()
@@ -507,16 +524,71 @@ class GlobalStitcher:
 class Q3Solver:
     """High-level orchestrator for the two-stage problem-3 pipeline."""
 
-    def __init__(self, instance: LogisticsInstance, compatibility_graph: TemporalCompatibilityGraph, n_clusters: int = 5, local_max_iterations: int = 20) -> None:
+    def __init__(self, instance: LogisticsInstance, compatibility_graph: TemporalCompatibilityGraph, n_clusters: int = 5, local_max_iterations: int = 20, progress_callback: Callable[[dict], None] | None = None) -> None:
         self._instance = instance
         self._compatibility_graph = compatibility_graph
         self._n_clusters = n_clusters
         self._local_max_iterations = local_max_iterations
+        self._progress_callback = progress_callback
 
     def solve(self) -> Q3Solution:
         partition = GraphClusterer(self._instance, self._compatibility_graph, self._n_clusters).cluster()
-        cluster_results = [AsyncClusterSolver(self._instance, node_ids, self._local_max_iterations).solve(cluster_id) for cluster_id, node_ids in sorted(partition.clusters.items())]
+        cluster_items = sorted(partition.clusters.items())
+        if self._progress_callback is not None:
+            self._progress_callback(
+                {
+                    "stage": "cluster_partition_ready",
+                    "cluster_count": len(cluster_items),
+                    "cluster_sizes": {cluster_id: len(node_ids) for cluster_id, node_ids in cluster_items},
+                }
+            )
+        cluster_results: List[ClusterSolveResult] = []
+        for cluster_index, (cluster_id, node_ids) in enumerate(cluster_items, start=1):
+            if self._progress_callback is not None:
+                self._progress_callback(
+                    {
+                        "stage": "cluster_start",
+                        "cluster_index": cluster_index,
+                        "cluster_count": len(cluster_items),
+                        "cluster_id": cluster_id,
+                        "node_count": len(node_ids),
+                        "node_ids": list(node_ids),
+                    }
+                )
+            result = AsyncClusterSolver(
+                self._instance,
+                node_ids,
+                self._local_max_iterations,
+                progress_callback=self._progress_callback,
+            ).solve(cluster_id)
+            cluster_results.append(result)
+            if self._progress_callback is not None:
+                self._progress_callback(
+                    {
+                        "stage": "cluster_complete",
+                        "cluster_index": cluster_index,
+                        "cluster_count": len(cluster_items),
+                        "cluster_id": cluster_id,
+                        "node_count": len(node_ids),
+                        "objective": result.objective,
+                        "iterations": result.iterations,
+                        "quantum_used": result.quantum_used,
+                        "quantum_message": result.quantum_message,
+                    }
+                )
+        if self._progress_callback is not None:
+            self._progress_callback({"stage": "global_stitch_start", "cluster_count": len(cluster_results)})
         global_result = GlobalStitcher(self._instance, cluster_results).stitch()
+        if self._progress_callback is not None:
+            self._progress_callback(
+                {
+                    "stage": "global_stitch_complete",
+                    "objective": global_result.objective,
+                    "travel_cost": global_result.travel_cost,
+                    "total_penalty": global_result.total_penalty,
+                    "route_length": len(global_result.route),
+                }
+            )
         return Q3Solution(partition, cluster_results, global_result)
 
 
