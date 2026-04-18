@@ -214,13 +214,15 @@ class AsyncClusterSolver:
     \(w^{k+1}_{ij}=t_{ij}+\max(0,0.9(w^k_{ij}-t_{ij})+k^{-1/2}\Delta w_{ij})\).
     """
 
-    def __init__(self, instance: LogisticsInstance, cluster_node_ids: Sequence[int], max_iterations: int = 20, tolerance: float = 1e-3, progress_callback: Callable[[dict], None] | None = None) -> None:
+    def __init__(self, instance: LogisticsInstance, cluster_node_ids: Sequence[int], max_iterations: int = 20, tolerance: float = 1e-3, penalty_coefficient: float = 10.0, progress_callback: Callable[[dict], None] | None = None) -> None:
         self._instance = instance
         self._cluster_node_ids = list(cluster_node_ids)
         self._max_iterations = max_iterations
         self._tolerance = tolerance
+        self._penalty_coefficient = penalty_coefficient
         self._progress_callback = progress_callback
-        self._quantum_solver = QuantumTSPSolver()
+        self._quantum_solver = QuantumTSPSolver(max_iterations=max_iterations, quantum_mode=False, timeout=30, penalty_coeff=penalty_coefficient)
+        self._quantum_solver.set_penalty_coefficient(penalty_coefficient)
         self._hamiltonian_plotted = False
         self._last_solver_mode = "uninitialized"
         self._last_solver_message = "量子求解尚未执行"
@@ -309,14 +311,19 @@ class AsyncClusterSolver:
             self._last_solver_message = "单节点簇，直接返回，无需调用Kaiwu"
             return [self._cluster_node_ids[0]]
         try:
-            order = self._quantum_solver.solve_tsp(weight_matrix, self._cluster_node_ids)
+            result = self._quantum_solver.solve_subcluster(
+                weight_matrix,
+                self._cluster_node_ids,
+                objective_evaluator=lambda route: self._evaluate_time_penalties(route).objective,
+            )
+            order = list(result["route"])
             if not self._hamiltonian_plotted:
                 initial_energy = float(np.sum(weight_matrix))
                 final_energy = self._route_cost(order, weight_matrix)
                 self._quantum_solver.plot_hamiltonian_evolution(initial_energy, final_energy)
                 self._hamiltonian_plotted = True
             self._last_solver_mode = "quantum"
-            self._last_solver_message = "Kaiwu求解成功"
+            self._last_solver_message = str(result["quantum_message"])
             return order
         except Exception as exc:
             self._last_solver_mode = "classical_fallback"
@@ -389,7 +396,7 @@ class AsyncClusterSolver:
         node = self._instance.get_node(node_id)
         early = max(node.ready_time - arrival_time, 0.0)
         late = max(arrival_time - node.due_time, 0.0)
-        return 10.0 * early * early + 20.0 * late * late
+        return self._penalty_coefficient * (early * early + late * late)
 
     def _delta_weights(self, route: Sequence[int], penalties: Dict[int, float]) -> np.ndarray:
         delta = np.zeros((len(self._cluster_node_ids), len(self._cluster_node_ids)), dtype=np.float64)
@@ -404,9 +411,10 @@ class AsyncClusterSolver:
 class GlobalStitcher:
     """Supernode reconstructor for the cluster-level global order."""
 
-    def __init__(self, instance: LogisticsInstance, cluster_results: Sequence[ClusterSolveResult]) -> None:
+    def __init__(self, instance: LogisticsInstance, cluster_results: Sequence[ClusterSolveResult], penalty_coefficient: float = 10.0) -> None:
         self._instance = instance
         self._cluster_results = list(cluster_results)
+        self._penalty_coefficient = penalty_coefficient
         self._supernode_to_cluster_id: Dict[int, int] = {
             supernode_idx: result.cluster_id
             for supernode_idx, result in enumerate(self._cluster_results, start=1)
@@ -414,14 +422,23 @@ class GlobalStitcher:
 
     def stitch(self) -> GlobalRouteResult:
         matrix = self.build_supernode_cost_matrix()
-        order = self._solve_supernode_tsp(matrix)
+        supernode_order = self._optimize_supernode_order(matrix)
         by_id = {result.cluster_id: result for result in self._cluster_results}
         route: List[int] = []
-        for supernode_idx in order[1:]:
+        for supernode_idx in supernode_order:
             cluster_id = self._supernode_to_cluster_id[supernode_idx]
             route.extend(by_id[cluster_id].route)
-        evaluation = self._evaluate_full_route(route)
-        return GlobalRouteResult(order, route, evaluation.arrival_times, evaluation.penalties, evaluation.total_penalty, evaluation.travel_cost, evaluation.objective)
+        optimized_route = self._local_search(route, iterations=20)
+        metrics = self._calculate_global_cost(optimized_route)
+        return GlobalRouteResult(
+            [0, *supernode_order],
+            optimized_route,
+            metrics["arrival_times"],
+            metrics["penalties"],
+            metrics["total_penalty"],
+            metrics["travel_cost"],
+            metrics["objective"],
+        )
 
     def build_supernode_cost_matrix(self) -> np.ndarray:
         """Cost matrix on depot plus cluster supernodes using boundary-node transfers."""
@@ -443,7 +460,47 @@ class GlobalStitcher:
         return matrix
 
     def _transition_cost(self, route: Sequence[int], first_arrival_time: float) -> float:
-        return AsyncClusterSolver(self._instance, route)._evaluate_time_penalties(route, start_time=first_arrival_time).objective
+        return AsyncClusterSolver(
+            self._instance,
+            route,
+            penalty_coefficient=self._penalty_coefficient,
+        )._evaluate_time_penalties(route, start_time=first_arrival_time).objective
+
+    def _calculate_global_cost(self, route: Sequence[int]) -> dict[str, object]:
+        evaluation = self._evaluate_full_route(route)
+        return {
+            "arrival_times": evaluation.arrival_times,
+            "penalties": evaluation.penalties,
+            "travel_cost": evaluation.travel_cost,
+            "total_penalty": evaluation.total_penalty,
+            "objective": evaluation.objective,
+        }
+
+    def _optimize_supernode_order(self, cost_matrix: np.ndarray) -> List[int]:
+        supernode_scores = []
+        for supernode_idx, result in enumerate(self._cluster_results, start=1):
+            aggregate_cost = result.travel_cost + result.total_penalty + float(cost_matrix[0, supernode_idx])
+            supernode_scores.append((aggregate_cost, supernode_idx))
+        supernode_scores.sort(key=lambda item: item[0])
+        return [supernode_idx for _, supernode_idx in supernode_scores]
+
+    def _local_search(self, route: Sequence[int], iterations: int = 20) -> List[int]:
+        best_route = list(route)
+        best_metrics = self._calculate_global_cost(best_route)
+        for _ in range(iterations):
+            improved = False
+            for i in range(len(best_route) - 1):
+                for j in range(i + 1, len(best_route)):
+                    candidate = list(best_route)
+                    candidate[i], candidate[j] = candidate[j], candidate[i]
+                    candidate_metrics = self._calculate_global_cost(candidate)
+                    if candidate_metrics["objective"] < best_metrics["objective"]:
+                        best_route = candidate
+                        best_metrics = candidate_metrics
+                        improved = True
+            if not improved:
+                break
+        return best_route
 
     def _evaluate_full_route(self, route: Sequence[int]) -> RouteEvaluation:
         if not route:
@@ -471,7 +528,7 @@ class GlobalStitcher:
         node = self._instance.get_node(node_id)
         early = max(node.ready_time - arrival_time, 0.0)
         late = max(arrival_time - node.due_time, 0.0)
-        return 10.0 * early * early + 20.0 * late * late
+        return self._penalty_coefficient * (early * early + late * late)
 
     def _solve_supernode_tsp(self, cost_matrix: np.ndarray) -> List[int]:
         nodes = list(range(cost_matrix.shape[0]))
@@ -524,11 +581,12 @@ class GlobalStitcher:
 class Q3Solver:
     """High-level orchestrator for the two-stage problem-3 pipeline."""
 
-    def __init__(self, instance: LogisticsInstance, compatibility_graph: TemporalCompatibilityGraph, n_clusters: int = 5, local_max_iterations: int = 20, progress_callback: Callable[[dict], None] | None = None) -> None:
+    def __init__(self, instance: LogisticsInstance, compatibility_graph: TemporalCompatibilityGraph, n_clusters: int = 5, local_max_iterations: int = 20, penalty_coefficient: float = 10.0, progress_callback: Callable[[dict], None] | None = None) -> None:
         self._instance = instance
         self._compatibility_graph = compatibility_graph
         self._n_clusters = n_clusters
         self._local_max_iterations = local_max_iterations
+        self._penalty_coefficient = penalty_coefficient
         self._progress_callback = progress_callback
 
     def solve(self) -> Q3Solution:
@@ -559,6 +617,7 @@ class Q3Solver:
                 self._instance,
                 node_ids,
                 self._local_max_iterations,
+                penalty_coefficient=self._penalty_coefficient,
                 progress_callback=self._progress_callback,
             ).solve(cluster_id)
             cluster_results.append(result)
@@ -578,7 +637,8 @@ class Q3Solver:
                 )
         if self._progress_callback is not None:
             self._progress_callback({"stage": "global_stitch_start", "cluster_count": len(cluster_results)})
-        global_result = GlobalStitcher(self._instance, cluster_results).stitch()
+        pre_stitch_objective = float(sum(result.objective for result in cluster_results))
+        global_result = GlobalStitcher(self._instance, cluster_results, penalty_coefficient=self._penalty_coefficient).stitch()
         if self._progress_callback is not None:
             self._progress_callback(
                 {
@@ -587,9 +647,11 @@ class Q3Solver:
                     "travel_cost": global_result.travel_cost,
                     "total_penalty": global_result.total_penalty,
                     "route_length": len(global_result.route),
+                    "stitch_loss": global_result.objective - pre_stitch_objective,
                 }
             )
         return Q3Solution(partition, cluster_results, global_result)
 
 
+# 本次优化核心点：统一Kaiwu与本地DP惩罚系数、改为按总代价排序子簇拼接，并在全局拼接后执行局部搜索。
 __all__: List[str] = ["AsyncClusterSolver", "ClusterIterationLog", "ClusterPartition", "ClusterQuality", "ClusterSolveResult", "GlobalRouteResult", "GlobalStitcher", "GraphClusterer", "Q3Solution", "Q3Solver", "RouteEvaluation", "QuantumTSPSolver"]

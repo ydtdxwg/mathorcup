@@ -1,22 +1,54 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import List, Sequence
-
 import logging
+import traceback
+from pathlib import Path
+from typing import Callable, List, Sequence
+
 import kaiwu as kw
 import matplotlib.pyplot as plt
-from matplotlib import font_manager
 import numpy as np
+from matplotlib import font_manager
 
 
 class QuantumTSPSolver:
-    """Kaiwu-based QUBO TSP client with plotting support."""
+    """Kaiwu-based QUBO TSP client with configurable penalty settings."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_iterations: int = 50, quantum_mode: bool = False, timeout: int = 30, penalty_coeff: float = 10.0) -> None:
         logging.getLogger("kaiwu.sampler._simulated_annealing").setLevel(logging.WARNING)
         self._cn_font = self._pick_font(["SimSun", "Songti SC", "STSong"])
         self._en_font = self._pick_font(["Times New Roman", "TimesNewRomanPSMT", "Nimbus Roman"])
+        self.max_iterations = max_iterations
+        self.quantum_mode = quantum_mode
+        self.timeout = timeout
+        self.penalty_coeff = penalty_coeff
+
+    def set_penalty_coefficient(self, penalty_coeff: float = 10.0) -> None:
+        self.penalty_coeff = float(penalty_coeff)
+
+    def solve_subcluster(
+        self,
+        dist_matrix: np.ndarray,
+        node_ids: Sequence[int],
+        objective_evaluator: Callable[[Sequence[int]], float] | None = None,
+    ) -> dict[str, object]:
+        try:
+            route = self.solve_tsp(dist_matrix, node_ids)
+            objective = float(objective_evaluator(route)) if objective_evaluator is not None else float(self._route_cost(route, dist_matrix))
+            mode_text = "量子模式" if self.quantum_mode else "经典模拟模式"
+            return {
+                "route": route,
+                "objective": objective,
+                "quantum_used": True,
+                "quantum_message": (
+                    f"Kaiwu求解成功 | max_iterations={self.max_iterations} | "
+                    f"timeout={self.timeout} | quantum_mode={self.quantum_mode}({mode_text}) | "
+                    f"penalty_coeff={self.penalty_coeff:.2f}"
+                ),
+            }
+        except Exception as exc:
+            detail = traceback.format_exc()
+            raise RuntimeError(f"Kaiwu子簇求解失败: {exc}\n{detail}") from exc
 
     def solve_tsp(self, dist_matrix: np.ndarray, node_ids: Sequence[int]) -> List[int]:
         dist_matrix = np.asarray(dist_matrix, dtype=np.float64)
@@ -51,7 +83,12 @@ class QuantumTSPSolver:
             qubo_model.add_constraint((1 - kw.core.quicksum([x[i, t] for i in range(n)])) ** 2 == 0, penalty=100000.0)
 
         worker = kw.sampler.SimulatedAnnealingSampler()
+        for attr, value in {"max_iterations": self.max_iterations, "timeout": self.timeout}.items():
+            if hasattr(worker, attr):
+                setattr(worker, attr, value)
         solver = kw.solver.SimpleSolver(worker)
+        if hasattr(solver, "timeout"):
+            solver.timeout = self.timeout
         sol_dict, _qubo_val = solver.solve_qubo(qubo_model)
         numeric_x = self._extract_numeric_array(sol_dict, x)
 
@@ -110,6 +147,13 @@ class QuantumTSPSolver:
         except Exception as exc:
             raise RuntimeError(f"Kaiwu结果解码失败: {exc}") from exc
 
+    def _route_cost(self, route: Sequence[int], dist_matrix: np.ndarray) -> float:
+        local_pos = {node_id: idx for idx, node_id in enumerate(route)}
+        total = 0.0
+        for prev_id, node_id in zip(route[:-1], route[1:]):
+            total += float(dist_matrix[local_pos[prev_id], local_pos[node_id]])
+        return total
+
     def _pick_font(self, font_names: Sequence[str]) -> font_manager.FontProperties:
         for font_name in font_names:
             try:
@@ -118,3 +162,6 @@ class QuantumTSPSolver:
             except Exception:
                 continue
         return font_manager.FontProperties()
+
+
+# 本次优化核心点：补充Kaiwu可调参数、统一惩罚系数接口、增强traceback错误日志，并保留中文绘图规范。

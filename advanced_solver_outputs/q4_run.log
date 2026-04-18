@@ -111,5 +111,3 @@
  -> 允许最多 7 辆车时, 综合最优成本为: 463590.00
  -> 允许最多 6 辆车时, 综合最优成本为: 463590.00
  -> 允许最多 5 辆车时, 综合最优成本为: 463590.00
-[Q4 保存] 结果 JSON 已保存到: advanced_solver_outputs\q4_results.json
-[Q4 保存] 详细日志已保存到: advanced_solver_outputs\q4_run.log

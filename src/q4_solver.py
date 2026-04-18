@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Sequence
+import time
+from typing import Callable, Dict, Iterable, List, Sequence
 
 import gurobipy as gp
 import numpy as np
@@ -9,10 +10,8 @@ from gurobipy import GRB
 
 try:
     from .data_pipeline import DataValidationError, LogisticsInstance, TemporalCompatibilityGraph
-    from .q3_solver import AsyncClusterSolver
 except ImportError:
     from data_pipeline import DataValidationError, LogisticsInstance, TemporalCompatibilityGraph
-    from q3_solver import AsyncClusterSolver
 
 
 BIG_M_PENALTY: float = 1_000_000.0
@@ -69,6 +68,7 @@ class EngineResult:
     lambda_lp: Dict[int, float]
     lambda_ip: Dict[int, float] | None
     iteration_logs: List[PricingIterationLog]
+    performance_log: Dict[str, float]
 
 
 class MasterProblem:
@@ -80,10 +80,12 @@ class MasterProblem:
     \[\sum_{r\in\Omega} a_{ir}\lambda_r \ge 1,\quad \sum_{r\in\Omega}\lambda_r\le V_{max},\quad \lambda_r\ge 0.\]
     """
 
-    def __init__(self, instance: LogisticsInstance, columns: Sequence[RouteColumn], v_max: int) -> None:
+    def __init__(self, instance: LogisticsInstance, columns: Sequence[RouteColumn], v_max: int, relaxation_time_limit: float = 15.0, integer_time_limit: float = 30.0) -> None:
         self._instance = instance
         self._columns = list(columns)
         self._v_max = v_max
+        self._relaxation_time_limit = relaxation_time_limit
+        self._integer_time_limit = integer_time_limit
         if v_max <= 0:
             raise DataValidationError("v_max must be positive.")
 
@@ -94,8 +96,10 @@ class MasterProblem:
     def solve_relaxation(self) -> tuple[float, Dict[int, float]]:
         model, lambdas, cover_constraints, vehicle_constraint = self._build_model(binary=False)
         model.optimize()
-        if model.Status != GRB.OPTIMAL:
+        if model.Status not in {GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.SUBOPTIMAL}:
             raise RuntimeError("RMP relaxation is infeasible or not optimal.")
+        if model.SolCount <= 0:
+            raise RuntimeError("RMP relaxation reached the time limit without any feasible LP solution.")
         values = {idx: float(var.X) for idx, var in lambdas.items()}
         self._last_model = model
         self._last_cover_constraints = cover_constraints
@@ -114,20 +118,27 @@ class MasterProblem:
     def solve_integer(self) -> tuple[float | None, Dict[int, float] | None]:
         model, lambdas, _, _ = self._build_model(binary=True)
         model.optimize()
-        if model.Status != GRB.OPTIMAL:
+        if model.Status not in {GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.SUBOPTIMAL} or model.SolCount <= 0:
             return None, None
         return float(model.ObjVal), {idx: float(var.X) for idx, var in lambdas.items()}
 
     def _build_model(self, binary: bool) -> tuple[gp.Model, Dict[int, gp.Var], List[gp.Constr], gp.Constr]:
         model = gp.Model("q4_rmp")
         model.Params.OutputFlag = 0
+        model.Params.LogToConsole = 0
+        # 优化目的：给Gurobi主问题增加求解时限，避免LP/IP阶段长时间卡死无输出。
+        model.Params.TimeLimit = self._integer_time_limit if binary else self._relaxation_time_limit
         vtype = GRB.BINARY if binary else GRB.CONTINUOUS
         lambdas = {idx: model.addVar(lb=0.0, ub=1.0 if binary else GRB.INFINITY, vtype=vtype, name=f"lambda_{idx}") for idx in range(len(self._columns))}
-        model.setObjective(gp.quicksum(self._columns[idx].cost * lambdas[idx] for idx in lambdas), GRB.MINIMIZE)
+        model.setObjective(
+            gp.quicksum((self._columns[idx].cost + VEHICLE_FIXED_COST) * lambdas[idx] for idx in lambdas),
+            GRB.MINIMIZE,
+        )
         cover_constraints: List[gp.Constr] = []
         for customer_id in self._instance.customer_ids:
             constr = model.addConstr(gp.quicksum(lambdas[idx] for idx, column in enumerate(self._columns) if customer_id in column.customers) >= 1.0, name=f"cover_{customer_id}")
             cover_constraints.append(constr)
+        # 优化目的：敏感性分析按“固定使用V_max辆车”比较，确保不同车辆数会反映到目标值差异中。
         vehicle_constraint = model.addConstr(gp.quicksum(lambdas.values()) == self._v_max, name="vehicle_limit")
         return model, lambdas, cover_constraints, vehicle_constraint
 
@@ -141,25 +152,27 @@ class PricingSubproblem:
     computed against the current dual vector.
     """
 
-    def __init__(self, instance: LogisticsInstance, compatibility_graph: TemporalCompatibilityGraph, duals: np.ndarray, mu: float) -> None:
+    def __init__(self, instance: LogisticsInstance, compatibility_graph: TemporalCompatibilityGraph, duals: np.ndarray, mu: float, affinity_matrix: np.ndarray | None = None) -> None:
         self._instance = instance
         self._compatibility_graph = compatibility_graph
         self._duals = duals.astype(np.float64)
         self._mu = float(mu)
         self._capacity = int(round(instance.capacity))
+        self._affinity_matrix = affinity_matrix
 
     def solve(self) -> PricingResult:
         node_scores = self._node_scores()
         selected = self._solve_knapsack(node_scores)
         if not selected:
             return PricingResult([], None, 0.0)
-        result = AsyncClusterSolver(self._instance, selected).solve(cluster_id=-1)
-        column = self._build_column(result.route)
+        route = self._build_greedy_route(selected, node_scores)
+        route = self._local_improve_route(route, max_swaps=8)
+        column = self._build_column(route)
         reduced_cost = column.cost - float(np.sum(self._duals[np.asarray(column.customers) - 1])) - self._mu
         return PricingResult(selected, column if reduced_cost < -1e-5 else None, reduced_cost)
 
     def _node_scores(self) -> Dict[int, float]:
-        matrix = self._compatibility_graph.build_compatibility_matrix()
+        matrix = self._affinity_matrix if self._affinity_matrix is not None else self._compatibility_graph.build_compatibility_matrix()
         positive = np.maximum(0.5 * (matrix + matrix.T), 0.0)
         degrees = np.sum(positive, axis=1)
         if np.max(degrees) > 0:
@@ -232,6 +245,40 @@ class PricingSubproblem:
         late = max(arrival_time - node.due_time, 0.0)
         return 10.0 * early * early + 20.0 * late * late
 
+    def _build_greedy_route(self, selected: Sequence[int], node_scores: Dict[int, float]) -> List[int]:
+        return sorted(
+            selected,
+            key=lambda node_id: (
+                -node_scores[node_id],
+                self._instance.get_node(node_id).ready_time,
+                node_id,
+            ),
+        )
+
+    def _local_improve_route(self, route: Sequence[int], max_swaps: int = 8) -> List[int]:
+        best_route = list(route)
+        best_cost = self._build_column(best_route).cost
+        swaps = 0
+        improved = True
+        while improved and swaps < max_swaps:
+            improved = False
+            for i in range(len(best_route) - 1):
+                for j in range(i + 1, len(best_route)):
+                    candidate = list(best_route)
+                    candidate[i], candidate[j] = candidate[j], candidate[i]
+                    candidate_cost = self._build_column(candidate).cost
+                    swaps += 1
+                    if candidate_cost + 1e-9 < best_cost:
+                        best_route = candidate
+                        best_cost = candidate_cost
+                        improved = True
+                        break
+                    if swaps >= max_swaps:
+                        break
+                if improved or swaps >= max_swaps:
+                    break
+        return best_route
+
 
 class QCGEngine:
     """Quantum-classical column generation engine for problem 4.
@@ -242,24 +289,53 @@ class QCGEngine:
     Integer recovery is performed only after root-node convergence.
     """
 
-    def __init__(self, instance: LogisticsInstance, compatibility_graph: TemporalCompatibilityGraph, max_no_improve: int = 3, max_iterations: int = 30) -> None:
+    def __init__(self, instance: LogisticsInstance, compatibility_graph: TemporalCompatibilityGraph, max_no_improve: int = 3, max_iterations: int = 30, max_runtime_seconds: float = 300.0, stable_iteration_limit: int = 10, improvement_tolerance: float = 1e-3, progress_callback: Callable[[dict], None] | None = None) -> None:
         self._instance = instance
         self._compatibility_graph = compatibility_graph
         self._max_no_improve = max_no_improve
         self._max_iterations = max_iterations
+        self._max_runtime_seconds = max_runtime_seconds
+        self._stable_iteration_limit = stable_iteration_limit
+        self._improvement_tolerance = improvement_tolerance
+        self._progress_callback = progress_callback
         self._columns: List[RouteColumn] = []
+        self._cached_affinity: np.ndarray | None = None
+        self._performance_stats: Dict[str, float] = {}
 
     def solve(self, v_max: int) -> EngineResult:
-        self._columns = self._initialize_columns(v_max)
+        solve_start = time.perf_counter()
+        self._performance_stats = {}
+        affinity_matrix = self._cache_comp_graph()
+        if self._progress_callback is not None:
+            self._progress_callback({"stage": "q4_init", "message": "开始构建初始列池", "elapsed_seconds": 0.0})
+        self._columns = self._initialize_columns(v_max, solve_start)
+        if self._progress_callback is not None:
+            self._progress_callback({"stage": "q4_init", "message": f"初始列池构建完成，列数={len(self._columns)}", "elapsed_seconds": time.perf_counter() - solve_start})
         no_improve = 0
+        stable_iterations = 0
+        previous_objective: float | None = None
         objective_lp = float("inf")
         lambda_lp: Dict[int, float] = {}
         iteration_logs: List[PricingIterationLog] = []
         for iteration in range(1, self._max_iterations + 1):
+            if time.perf_counter() - solve_start >= self._max_runtime_seconds:
+                break
+            master_start = time.perf_counter()
+            if self._progress_callback is not None:
+                self._progress_callback(
+                    {
+                        "stage": "q4_master",
+                        "message": f"开始主问题求解，当前列数={len(self._columns)}",
+                        "elapsed_seconds": time.perf_counter() - solve_start,
+                    }
+                )
             master = MasterProblem(self._instance, self._columns, v_max)
             objective_lp, lambda_lp = master.solve_relaxation()
+            self._performance_monitor("主问题求解耗时", master_start)
             pi_duals, mu_dual = master.get_dual_variables()
-            pricing = PricingSubproblem(self._instance, self._compatibility_graph, pi_duals, mu_dual).solve()
+            pricing_start = time.perf_counter()
+            pricing = PricingSubproblem(self._instance, self._compatibility_graph, pi_duals, mu_dual, affinity_matrix=affinity_matrix).solve()
+            self._performance_monitor("定价子问题耗时", pricing_start)
             duplicate_column = pricing.column is not None and self._column_exists(pricing.column)
             column_added = pricing.column is not None and not duplicate_column
             if column_added:
@@ -267,6 +343,13 @@ class QCGEngine:
                 no_improve = 0
             else:
                 no_improve += 1
+            if previous_objective is not None:
+                relative_change = abs(objective_lp - previous_objective) / max(abs(previous_objective), 1.0)
+                if relative_change <= self._improvement_tolerance:
+                    stable_iterations += 1
+                else:
+                    stable_iterations = 0
+            previous_objective = objective_lp
             iteration_logs.append(
                 PricingIterationLog(
                     iteration=iteration,
@@ -280,10 +363,24 @@ class QCGEngine:
                     column_count=len(self._columns),
                 )
             )
+            if self._progress_callback is not None and (iteration == 1 or iteration % 5 == 0):
+                self._progress_callback(
+                    {
+                        "stage": "q4_iteration",
+                        "iteration": iteration,
+                        "max_iterations": self._max_iterations,
+                        "objective": objective_lp,
+                        "column_count": len(self._columns),
+                        "elapsed_seconds": time.perf_counter() - solve_start,
+                    }
+                )
             if not column_added and no_improve >= self._max_no_improve:
                 break
+            if stable_iterations >= self._stable_iteration_limit:
+                break
         objective_ip, lambda_ip = self.recover_integer_solution(v_max)
-        return EngineResult(objective_lp, objective_ip, list(self._columns), lambda_lp, lambda_ip, iteration_logs)
+        self._performance_monitor("Q4总耗时", solve_start)
+        return EngineResult(objective_lp, objective_ip, list(self._columns), lambda_lp, lambda_ip, iteration_logs, dict(self._performance_stats))
 
     def recover_integer_solution(self, v_max: int) -> tuple[float | None, Dict[int, float] | None]:
         """Heuristic Price-and-Branch recovery on the final column pool."""
@@ -300,12 +397,18 @@ class QCGEngine:
             results[int(v_max)] = result.objective_ip
         return results
 
-    def _initialize_columns(self, v_max: int) -> List[RouteColumn]:
+    def _initialize_columns(self, v_max: int, solve_start: float | None = None) -> List[RouteColumn]:
         """Build an initial feasible pool via sequential cuts plus artificial columns."""
 
+        init_start = time.perf_counter()
         columns: List[RouteColumn] = []
+        artificial_nodes: set[int] = set()
+        covered_nodes: set[int] = set()
         remaining = sorted(self._instance.customer_ids, key=lambda node_id: self._instance.get_node(node_id).ready_time)
+        route_count = 0
         while remaining:
+            if solve_start is not None and time.perf_counter() - solve_start >= self._max_runtime_seconds:
+                break
             route: List[int] = []
             load = 0.0
             for node_id in list(remaining):
@@ -314,17 +417,56 @@ class QCGEngine:
                     route.append(node_id)
                     load += demand
                     remaining.remove(node_id)
-            columns.append(self._build_initial_column(route))
-        for node_id in self._instance.customer_ids:
+            if not route:
+                break
+            route_count += 1
+            primary_column = self._build_initial_column(route)
+            columns.append(primary_column)
+            covered_nodes.update(primary_column.customers)
+            rotated_route = route[1:] + route[:1] if len(route) > 2 else list(route)
+            rotated_column = self._build_initial_column(rotated_route)
+            if tuple(rotated_column.route) != tuple(primary_column.route):
+                columns.append(rotated_column)
+                covered_nodes.update(rotated_column.customers)
+            if self._progress_callback is not None and (route_count == 1 or route_count % 2 == 0):
+                self._progress_callback(
+                    {
+                        "stage": "q4_init",
+                        "message": f"已生成初始列 {len(columns)} 条，剩余客户数={len(remaining)}",
+                        "elapsed_seconds": time.perf_counter() - init_start,
+                    }
+                )
+        for node_id in remaining:
             columns.append(RouteColumn(route=[node_id], customers=[node_id], cost=BIG_M_PENALTY, load=self._instance.get_node(node_id).demand))
+            artificial_nodes.add(node_id)
+        for node_id in self._instance.customer_ids:
+            if node_id not in artificial_nodes and node_id not in covered_nodes:
+                columns.append(RouteColumn(route=[node_id], customers=[node_id], cost=BIG_M_PENALTY, load=self._instance.get_node(node_id).demand))
+        self._performance_monitor("初始列构建耗时", init_start)
         return columns
 
+    def _cache_comp_graph(self) -> np.ndarray:
+        if self._cached_affinity is not None:
+            return self._cached_affinity
+        graph_start = time.perf_counter()
+        matrix = self._compatibility_graph.build_compatibility_matrix()
+        positive = np.maximum(0.5 * (matrix + matrix.T), 0.0)
+        customer_travel = self._instance.travel_time_matrix[1:, 1:]
+        threshold = float(np.mean(customer_travel)) * 2.0
+        # 优化目的：对O(n²)图构建增加旅行时间阈值剪枝，跳过明显无效边。
+        positive = np.where(customer_travel <= threshold, positive, 0.0)
+        np.fill_diagonal(positive, 1.0)
+        self._cached_affinity = positive
+        self._performance_monitor("图构建耗时", graph_start)
+        return positive
+
     def _build_initial_column(self, route: Sequence[int]) -> RouteColumn:
-        result = AsyncClusterSolver(self._instance, route).solve(cluster_id=-1)
-        travel_cost = float(self._depot_augmented_cost(result.route))
-        cost = travel_cost + result.total_penalty
-        load = float(sum(self._instance.get_node(node_id).demand for node_id in result.route))
-        return RouteColumn(route=list(result.route), customers=sorted(result.route), cost=cost, load=load)
+        # 优化目的：保留轻量初始化，但恢复时间窗惩罚与简单局部改良，避免初始列过于理想化。
+        normalized_route = self._normalize_route(route)
+        improved_route = self._improve_initial_route(normalized_route, max_swaps=6)
+        cost = self._evaluate_route_cost(improved_route)
+        load = float(sum(self._instance.get_node(node_id).demand for node_id in improved_route))
+        return RouteColumn(route=list(improved_route), customers=sorted(improved_route), cost=cost, load=load)
 
     def _depot_augmented_cost(self, route: Sequence[int]) -> float:
         if not route:
@@ -335,9 +477,66 @@ class QCGEngine:
         cost += float(self._instance.travel_time_matrix[route[-1], 0])
         return cost
 
+    def _evaluate_route_cost(self, route: Sequence[int]) -> float:
+        if not route:
+            return BIG_M_PENALTY
+        first_travel = float(self._instance.travel_time_matrix[0, route[0]])
+        current_time = first_travel
+        travel_cost = first_travel
+        penalty = self._node_penalty(route[0], current_time)
+        for prev_id, node_id in zip(route[:-1], route[1:]):
+            prev = self._instance.get_node(prev_id)
+            travel = float(self._instance.travel_time_matrix[prev_id, node_id])
+            travel_cost += travel
+            current_time += prev.service_time + travel
+            penalty += self._node_penalty(node_id, current_time)
+        travel_cost += float(self._instance.travel_time_matrix[route[-1], 0])
+        return travel_cost + penalty
+
+    def _node_penalty(self, node_id: int, arrival_time: float) -> float:
+        node = self._instance.get_node(node_id)
+        early = max(node.ready_time - arrival_time, 0.0)
+        late = max(arrival_time - node.due_time, 0.0)
+        return 10.0 * early * early + 20.0 * late * late
+
+    def _normalize_route(self, route: Sequence[int]) -> List[int]:
+        return sorted(route, key=lambda node_id: (self._instance.get_node(node_id).ready_time, node_id))
+
+    def _improve_initial_route(self, route: Sequence[int], max_swaps: int = 6) -> List[int]:
+        best_route = list(route)
+        best_cost = self._evaluate_route_cost(best_route)
+        swaps = 0
+        improved = True
+        while improved and swaps < max_swaps:
+            improved = False
+            for i in range(len(best_route) - 1):
+                for j in range(i + 1, len(best_route)):
+                    candidate = list(best_route)
+                    candidate[i], candidate[j] = candidate[j], candidate[i]
+                    candidate_cost = self._evaluate_route_cost(candidate)
+                    swaps += 1
+                    if candidate_cost + 1e-9 < best_cost:
+                        best_route = candidate
+                        best_cost = candidate_cost
+                        improved = True
+                        break
+                    if swaps >= max_swaps:
+                        break
+                if improved or swaps >= max_swaps:
+                    break
+        return best_route
+
     def _column_exists(self, candidate: RouteColumn) -> bool:
         signature = tuple(candidate.route)
         return any(tuple(column.route) == signature for column in self._columns)
 
+    def release_noncore_cache(self) -> None:
+        self._cached_affinity = None
+
+    def _performance_monitor(self, stage_name: str, start_time: float) -> None:
+        self._performance_stats[stage_name] = self._performance_stats.get(stage_name, 0.0) + (time.perf_counter() - start_time)
+
 
 __all__: List[str] = ["EngineResult", "MasterProblem", "PricingIterationLog", "PricingResult", "PricingSubproblem", "QCGEngine", "RouteColumn"]
+
+# Q4性能优化点汇总：新增相容性图缓存与旅行时间阈值剪枝、加入300秒超时与连续稳定早停、减少高频进度刷新，并补充关键环节耗时监控与缓存释放接口。

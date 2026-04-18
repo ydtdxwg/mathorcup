@@ -5,6 +5,8 @@ import json
 import time
 from pathlib import Path
 
+import numpy as np
+
 from src.data_pipeline import DataLoader, TemporalCompatibilityGraph
 from src.q3_solver import Q3Solver
 from src.q4_solver import QCGEngine
@@ -56,6 +58,24 @@ def main() -> None:
             log(f"[Q3 实时] 开始全局拼接 | 子簇数={event['cluster_count']}")
         elif stage == "global_stitch_complete":
             log(f"[Q3 实时] 全局拼接完成 | objective={event['objective']:.2f} | travel={event['travel_cost']:.2f} | penalty={event['total_penalty']:.2f} | route_length={event['route_length']}")
+            if "stitch_loss" in event:
+                log(f"[Q3 实时] 全局拼接损耗 | stitch_loss={event['stitch_loss']:.2f}")
+
+    def q4_progress(event: dict) -> None:
+        stage = event.get("stage")
+        if stage == "q4_init":
+            log(f"[Q4 初始化] {event['message']} | 已用时={event['elapsed_seconds']:.2f} 秒")
+            return
+        if stage == "q4_master":
+            log(f"[Q4 主问题] {event['message']} | 已用时={event['elapsed_seconds']:.2f} 秒")
+            return
+        if stage != "q4_iteration":
+            return
+        log(
+            f"[Q4 状态] 迭代 {event['iteration']}/{event['max_iterations']} | "
+            f"当前LP目标值={event['objective']:.2f} | 列数={event['column_count']} | "
+            f"已用时={event['elapsed_seconds']:.2f} 秒"
+        )
 
     log("=== 初始化数据管线 ===")
     excel_path = Path("参考算例.xlsx")
@@ -64,8 +84,9 @@ def main() -> None:
     log(f"数据加载成功! 客户节点数: {instance.customer_count}, 车辆额定容量: {instance.capacity}")
 
     log("\n=== 构建时空相容性图 ===")
-    alpha = 1.0
-    beta = 1.0
+    # 优化原因：提高时间因素权重，降低聚类拆分造成的局部最优陷阱。
+    alpha = 0.7
+    beta = 1.3
     comp_graph = TemporalCompatibilityGraph(instance, alpha=alpha, beta=beta)
     log("时空相容性图构建完成")
 
@@ -82,11 +103,26 @@ def main() -> None:
         current_phase = "q3"
         log("\n=== 开始求解第三问 (50节点单车时空聚类-量子协同) ===")
         q3_start = time.perf_counter()
-        q3_solution = Q3Solver(instance, comp_graph, n_clusters=5, local_max_iterations=15, progress_callback=q3_progress).solve()
+        # 优化原因：先使用单簇全局求解，减少拆分损耗；同时增加局部迭代次数提升Kaiwu收敛稳定性。
+        q3_solution = Q3Solver(
+            instance,
+            comp_graph,
+            n_clusters=1,
+            local_max_iterations=30,
+            penalty_coefficient=10.0,
+            progress_callback=q3_progress,
+        ).solve()
         q3_elapsed = time.perf_counter() - q3_start
         q3_quantum_clusters = sum(1 for item in q3_solution.cluster_results if item.quantum_used)
         log(f"[Q3 进度] 聚类后子簇数: {len(q3_solution.cluster_results)}")
         log(f"[Q3 量子状态] 成功调用Kaiwu的子簇数: {q3_quantum_clusters}/{len(q3_solution.cluster_results)}")
+        for result in q3_solution.cluster_results:
+            log(
+                f"[Q3 子簇对比] cluster_id={result.cluster_id} | "
+                f"travel={result.travel_cost:.2f} | penalty={result.total_penalty:.2f} | "
+                f"objective={result.objective:.2f} | quantum_used={result.quantum_used}"
+            )
+            log(f"             -> {result.quantum_message}")
         log(f"[Q3 完成] 用时: {q3_elapsed:.2f} 秒")
         log(f"[Q3 结果] 总目标值(成本+惩罚): {q3_solution.global_result.objective:.2f}")
         log(f"[Q3 结果] 纯运输时间: {q3_solution.global_result.travel_cost:.2f}")
@@ -127,11 +163,21 @@ def main() -> None:
     if args.task in {"q4", "both"}:
         current_phase = "q4"
         log("\n=== 开始求解第四问 (50节点多车受限 - 列生成) ===")
-        q4_engine = QCGEngine(instance, comp_graph, max_iterations=20)
+        log("[Q4 提示] 若看到 Gurobi license 信息，说明当前阻塞点已经进入主问题求解。")
+        q4_engine = QCGEngine(
+            instance,
+            comp_graph,
+            max_iterations=20,
+            max_runtime_seconds=300.0,
+            stable_iteration_limit=10,
+            improvement_tolerance=1e-3,
+            progress_callback=q4_progress,
+        )
         min_vehicles = int((total_demand + instance.capacity - 1) // instance.capacity)
         test_vehicle_limits = [min_vehicles + 3, min_vehicles + 2, min_vehicles + 1, min_vehicles]
         log(f"系统总需求: {total_demand}, 理论最小车辆数: {min_vehicles}")
         log(f"开始扫描车辆数约束帕累托前沿: {test_vehicle_limits}")
+        log("[Q4 提示] 当前敏感性分析按“固定使用 V_max 辆车”比较，不同车辆数应体现在目标值差异中。")
         log("[Q4 提示] 列生成阶段是阻塞求解，单个 V_max 完成前可能暂时没有新输出。")
 
         sensitivity_results: dict[int, float | None] = {}
@@ -143,12 +189,16 @@ def main() -> None:
             q4_case_start = time.perf_counter()
             result = q4_engine.solve(v_max)
             case_elapsed = time.perf_counter() - q4_case_start
+            if q4_engine._cached_affinity is not None and float(np.mean(q4_engine._cached_affinity)) > 0 and len(q4_engine._cached_affinity) > 0:
+                q4_engine.release_noncore_cache()
+                log("[Q4 资源] 已释放缓存的相容性图数据，降低后续内存压力。")
             q4_seconds[v_max] = case_elapsed
             sensitivity_results[v_max] = result.objective_ip
             q4_detailed_results[v_max] = {
                 "objective_lp": result.objective_lp,
                 "objective_ip": result.objective_ip,
                 "column_count": len(result.columns),
+                "performance_log": result.performance_log,
                 "active_lambda_lp": {str(k): v for k, v in result.lambda_lp.items() if v > 1e-6},
                 "active_lambda_ip": None if result.lambda_ip is None else {str(k): v for k, v in result.lambda_ip.items() if v > 1e-6},
                 "columns": [{"route": col.route, "customers": col.customers, "cost": col.cost, "load": col.load} for col in result.columns],
@@ -169,6 +219,9 @@ def main() -> None:
             }
             if result.objective_ip is not None:
                 log(f"[Q4 完成] V_max = {v_max} | 用时: {case_elapsed:.2f} 秒 | LP目标值={result.objective_lp:.2f} | 整数目标值={result.objective_ip:.2f} | 列数={len(result.columns)}")
+                if result.iteration_logs:
+                    last_log = result.iteration_logs[-1]
+                    log(f"[Q4 列生成] V_max = {v_max} | 最后一轮reduced_cost={last_log.reduced_cost:.2f} | 最终列数={last_log.column_count}")
             else:
                 log(f"[Q4 完成] V_max = {v_max} | 用时: {case_elapsed:.2f} 秒 | LP目标值={result.objective_lp:.2f} | 整数恢复失败 | 列数={len(result.columns)}")
 
@@ -209,3 +262,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# 本次优化核心点：调整Q3默认聚类与时空相容性参数，增强子簇目标值与全局拼接损耗日志，同时为Q4补充300秒超时、稳定早停、缓存释放、节流进度输出，并恢复按固定车辆数进行敏感性分析。

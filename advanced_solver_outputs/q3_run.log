@@ -1,0 +1,158 @@
+=== 初始化数据管线 ===
+数据加载成功! 客户节点数: 50, 车辆额定容量: 60.0
+
+=== 构建时空相容性图 ===
+时空相容性图构建完成
+
+=== 开始求解第三问 (50节点单车时空聚类-量子协同) ===
+[Q3 实时] 聚类完成 | 子簇数=4 | 簇规模={0: 15, 1: 15, 2: 15, 3: 5}
+[Q3 实时] 开始子簇 1/4 | cluster_id=0 | 节点数=15
+[Q3 实时] 子簇 0 迭代 1/30 | mode=quantum | objective=187432.00
+[Q3 实时] 子簇 0 迭代 2/30 | mode=quantum | objective=119855.00
+[Q3 实时] 子簇 0 迭代 3/30 | mode=quantum | objective=157236.00
+[Q3 实时] 子簇 0 迭代 4/30 | mode=quantum | objective=144112.00
+[Q3 实时] 子簇 0 迭代 5/30 | mode=quantum | objective=129365.00
+[Q3 实时] 子簇 0 迭代 6/30 | mode=quantum | objective=140944.00
+[Q3 实时] 子簇 0 迭代 7/30 | mode=quantum | objective=117266.00
+[Q3 实时] 子簇 0 迭代 8/30 | mode=quantum | objective=103695.00
+[Q3 实时] 子簇 0 迭代 9/30 | mode=quantum | objective=127408.00
+[Q3 实时] 子簇 0 迭代 10/30 | mode=quantum | objective=148193.00
+[Q3 实时] 子簇 0 迭代 11/30 | mode=quantum | objective=105080.00
+[Q3 实时] 子簇 0 迭代 12/30 | mode=quantum | objective=125965.00
+[Q3 实时] 子簇 0 迭代 13/30 | mode=quantum | objective=98712.00
+[Q3 实时] 子簇 0 迭代 14/30 | mode=quantum | objective=178880.00
+[Q3 实时] 子簇 0 迭代 15/30 | mode=quantum | objective=126667.00
+[Q3 实时] 子簇 0 迭代 16/30 | mode=quantum | objective=86307.00
+[Q3 实时] 子簇 0 迭代 17/30 | mode=quantum | objective=102126.00
+[Q3 实时] 子簇 0 迭代 18/30 | mode=quantum | objective=126680.00
+[Q3 实时] 子簇 0 迭代 19/30 | mode=quantum | objective=193226.00
+[Q3 实时] 子簇 0 迭代 20/30 | mode=quantum | objective=136936.00
+[Q3 实时] 子簇 0 迭代 21/30 | mode=quantum | objective=164939.00
+[Q3 实时] 子簇 0 迭代 22/30 | mode=quantum | objective=155186.00
+[Q3 实时] 子簇 0 迭代 23/30 | mode=quantum | objective=130665.00
+[Q3 实时] 子簇 0 迭代 24/30 | mode=quantum | objective=165715.00
+[Q3 实时] 子簇 0 迭代 25/30 | mode=quantum | objective=133627.00
+[Q3 实时] 子簇 0 迭代 26/30 | mode=quantum | objective=165088.00
+[Q3 实时] 子簇 0 迭代 27/30 | mode=quantum | objective=185269.00
+[Q3 实时] 子簇 0 迭代 28/30 | mode=quantum | objective=121435.00
+[Q3 实时] 子簇 0 迭代 29/30 | mode=quantum | objective=135346.00
+[Q3 实时] 子簇 0 迭代 30/30 | mode=quantum | objective=184365.00
+[Q3 实时] 完成子簇 1/4 | cluster_id=0 | iterations=30 | objective=86307.00 | 量子状态=Kaiwu成功
+            -> Kaiwu求解成功 | max_iterations=30 | timeout=30 | quantum_mode=False(经典模拟模式) | penalty_coeff=10.00
+[Q3 实时] 开始子簇 2/4 | cluster_id=1 | 节点数=15
+[Q3 实时] 子簇 1 迭代 1/30 | mode=quantum | objective=232049.00
+[Q3 实时] 子簇 1 迭代 2/30 | mode=quantum | objective=350138.00
+[Q3 实时] 子簇 1 迭代 3/30 | mode=quantum | objective=324051.00
+[Q3 实时] 子簇 1 迭代 4/30 | mode=quantum | objective=397279.00
+[Q3 实时] 子簇 1 迭代 5/30 | mode=quantum | objective=298323.00
+[Q3 实时] 子簇 1 迭代 6/30 | mode=quantum | objective=289290.00
+[Q3 实时] 子簇 1 迭代 7/30 | mode=quantum | objective=220463.00
+[Q3 实时] 子簇 1 迭代 8/30 | mode=quantum | objective=141719.00
+[Q3 实时] 子簇 1 迭代 9/30 | mode=quantum | objective=305524.00
+[Q3 实时] 子簇 1 迭代 10/30 | mode=quantum | objective=245651.00
+[Q3 实时] 子簇 1 迭代 11/30 | mode=quantum | objective=276448.00
+[Q3 实时] 子簇 1 迭代 12/30 | mode=quantum | objective=219985.00
+[Q3 实时] 子簇 1 迭代 13/30 | mode=quantum | objective=194360.00
+[Q3 实时] 子簇 1 迭代 14/30 | mode=quantum | objective=223184.00
+[Q3 实时] 子簇 1 迭代 15/30 | mode=quantum | objective=164563.00
+[Q3 实时] 子簇 1 迭代 16/30 | mode=quantum | objective=163748.00
+[Q3 实时] 子簇 1 迭代 17/30 | mode=quantum | objective=240072.00
+[Q3 实时] 子簇 1 迭代 18/30 | mode=quantum | objective=280537.00
+[Q3 实时] 子簇 1 迭代 19/30 | mode=quantum | objective=324602.00
+[Q3 实时] 子簇 1 迭代 20/30 | mode=quantum | objective=312080.00
+[Q3 实时] 子簇 1 迭代 21/30 | mode=quantum | objective=291082.00
+[Q3 实时] 子簇 1 迭代 22/30 | mode=quantum | objective=238082.00
+[Q3 实时] 子簇 1 迭代 23/30 | mode=quantum | objective=341801.00
+[Q3 实时] 子簇 1 迭代 24/30 | mode=quantum | objective=348387.00
+[Q3 实时] 子簇 1 迭代 25/30 | mode=quantum | objective=259047.00
+[Q3 实时] 子簇 1 迭代 26/30 | mode=quantum | objective=285246.00
+[Q3 实时] 子簇 1 迭代 27/30 | mode=quantum | objective=234953.00
+[Q3 实时] 子簇 1 迭代 28/30 | mode=quantum | objective=386365.00
+[Q3 实时] 子簇 1 迭代 29/30 | mode=quantum | objective=400322.00
+[Q3 实时] 子簇 1 迭代 30/30 | mode=quantum | objective=172931.00
+[Q3 实时] 完成子簇 2/4 | cluster_id=1 | iterations=30 | objective=141719.00 | 量子状态=Kaiwu成功
+            -> Kaiwu求解成功 | max_iterations=30 | timeout=30 | quantum_mode=False(经典模拟模式) | penalty_coeff=10.00
+[Q3 实时] 开始子簇 3/4 | cluster_id=2 | 节点数=15
+[Q3 实时] 子簇 2 迭代 1/30 | mode=quantum | objective=351930.00
+[Q3 实时] 子簇 2 迭代 2/30 | mode=quantum | objective=226216.00
+[Q3 实时] 子簇 2 迭代 3/30 | mode=quantum | objective=205840.00
+[Q3 实时] 子簇 2 迭代 4/30 | mode=quantum | objective=164534.00
+[Q3 实时] 子簇 2 迭代 5/30 | mode=quantum | objective=171018.00
+[Q3 实时] 子簇 2 迭代 6/30 | mode=quantum | objective=235794.00
+[Q3 实时] 子簇 2 迭代 7/30 | mode=quantum | objective=220907.00
+[Q3 实时] 子簇 2 迭代 8/30 | mode=quantum | objective=360256.00
+[Q3 实时] 子簇 2 迭代 9/30 | mode=quantum | objective=110720.00
+[Q3 实时] 子簇 2 迭代 10/30 | mode=quantum | objective=226280.00
+[Q3 实时] 子簇 2 迭代 11/30 | mode=quantum | objective=141741.00
+[Q3 实时] 子簇 2 迭代 12/30 | mode=quantum | objective=169048.00
+[Q3 实时] 子簇 2 迭代 13/30 | mode=quantum | objective=251732.00
+[Q3 实时] 子簇 2 迭代 14/30 | mode=quantum | objective=138022.00
+[Q3 实时] 子簇 2 迭代 15/30 | mode=quantum | objective=170135.00
+[Q3 实时] 子簇 2 迭代 16/30 | mode=quantum | objective=265473.00
+[Q3 实时] 子簇 2 迭代 17/30 | mode=quantum | objective=183419.00
+[Q3 实时] 子簇 2 迭代 18/30 | mode=quantum | objective=132338.00
+[Q3 实时] 子簇 2 迭代 19/30 | mode=quantum | objective=259350.00
+[Q3 实时] 子簇 2 迭代 20/30 | mode=quantum | objective=293078.00
+[Q3 实时] 子簇 2 迭代 21/30 | mode=quantum | objective=305331.00
+[Q3 实时] 子簇 2 迭代 22/30 | mode=quantum | objective=247716.00
+[Q3 实时] 子簇 2 迭代 23/30 | mode=quantum | objective=228811.00
+[Q3 实时] 子簇 2 迭代 24/30 | mode=quantum | objective=274513.00
+[Q3 实时] 子簇 2 迭代 25/30 | mode=quantum | objective=165903.00
+[Q3 实时] 子簇 2 迭代 26/30 | mode=quantum | objective=187544.00
+[Q3 实时] 子簇 2 迭代 27/30 | mode=quantum | objective=242080.00
+[Q3 实时] 子簇 2 迭代 28/30 | mode=quantum | objective=425140.00
+[Q3 实时] 子簇 2 迭代 29/30 | mode=quantum | objective=141208.00
+[Q3 实时] 子簇 2 迭代 30/30 | mode=quantum | objective=172373.00
+[Q3 实时] 完成子簇 3/4 | cluster_id=2 | iterations=30 | objective=110720.00 | 量子状态=Kaiwu成功
+            -> Kaiwu求解成功 | max_iterations=30 | timeout=30 | quantum_mode=False(经典模拟模式) | penalty_coeff=10.00
+[Q3 实时] 开始子簇 4/4 | cluster_id=3 | 节点数=5
+[Q3 实时] 子簇 3 迭代 1/30 | mode=quantum | objective=8293.00
+[Q3 实时] 子簇 3 迭代 2/30 | mode=quantum | objective=2761.00
+[Q3 实时] 子簇 3 迭代 3/30 | mode=quantum | objective=6516.00
+[Q3 实时] 子簇 3 迭代 4/30 | mode=quantum | objective=1371.00
+[Q3 实时] 子簇 3 迭代 5/30 | mode=quantum | objective=3307.00
+[Q3 实时] 子簇 3 迭代 6/30 | mode=quantum | objective=10519.00
+[Q3 实时] 子簇 3 迭代 7/30 | mode=quantum | objective=7840.00
+[Q3 实时] 子簇 3 迭代 8/30 | mode=quantum | objective=6597.00
+[Q3 实时] 子簇 3 迭代 9/30 | mode=quantum | objective=2761.00
+[Q3 实时] 子簇 3 迭代 10/30 | mode=quantum | objective=10830.00
+[Q3 实时] 子簇 3 迭代 11/30 | mode=quantum | objective=7477.00
+[Q3 实时] 子簇 3 迭代 12/30 | mode=quantum | objective=7813.00
+[Q3 实时] 子簇 3 迭代 13/30 | mode=quantum | objective=8356.00
+[Q3 实时] 子簇 3 迭代 14/30 | mode=quantum | objective=1712.00
+[Q3 实时] 子簇 3 迭代 15/30 | mode=quantum | objective=13925.00
+[Q3 实时] 子簇 3 迭代 16/30 | mode=quantum | objective=3947.00
+[Q3 实时] 子簇 3 迭代 17/30 | mode=quantum | objective=7477.00
+[Q3 实时] 子簇 3 迭代 18/30 | mode=quantum | objective=11431.00
+[Q3 实时] 子簇 3 迭代 19/30 | mode=quantum | objective=9762.00
+[Q3 实时] 子簇 3 迭代 20/30 | mode=quantum | objective=4326.00
+[Q3 实时] 子簇 3 迭代 21/30 | mode=quantum | objective=1371.00
+[Q3 实时] 子簇 3 迭代 22/30 | mode=quantum | objective=6516.00
+[Q3 实时] 子簇 3 迭代 23/30 | mode=quantum | objective=8169.00
+[Q3 实时] 子簇 3 迭代 24/30 | mode=quantum | objective=3307.00
+[Q3 实时] 子簇 3 迭代 25/30 | mode=quantum | objective=5755.00
+[Q3 实时] 子簇 3 迭代 26/30 | mode=quantum | objective=1626.00
+[Q3 实时] 子簇 3 迭代 27/30 | mode=quantum | objective=3311.00
+[Q3 实时] 子簇 3 迭代 28/30 | mode=quantum | objective=7813.00
+[Q3 实时] 子簇 3 迭代 29/30 | mode=quantum | objective=6837.00
+[Q3 实时] 子簇 3 迭代 30/30 | mode=quantum | objective=2980.00
+[Q3 实时] 完成子簇 4/4 | cluster_id=3 | iterations=30 | objective=1371.00 | 量子状态=Kaiwu成功
+            -> Kaiwu求解成功 | max_iterations=30 | timeout=30 | quantum_mode=False(经典模拟模式) | penalty_coeff=10.00
+[Q3 实时] 开始全局拼接 | 子簇数=4
+[Q3 实时] 全局拼接完成 | objective=3539813.00 | travel=83.00 | penalty=3539730.00 | route_length=50
+[Q3 实时] 全局拼接损耗 | stitch_loss=3199696.00
+[Q3 进度] 聚类后子簇数: 4
+[Q3 量子状态] 成功调用Kaiwu的子簇数: 4/4
+[Q3 子簇对比] cluster_id=0 | travel=37.00 | penalty=86270.00 | objective=86307.00 | quantum_used=True
+             -> Kaiwu求解成功 | max_iterations=30 | timeout=30 | quantum_mode=False(经典模拟模式) | penalty_coeff=10.00
+[Q3 子簇对比] cluster_id=1 | travel=49.00 | penalty=141670.00 | objective=141719.00 | quantum_used=True
+             -> Kaiwu求解成功 | max_iterations=30 | timeout=30 | quantum_mode=False(经典模拟模式) | penalty_coeff=10.00
+[Q3 子簇对比] cluster_id=2 | travel=40.00 | penalty=110680.00 | objective=110720.00 | quantum_used=True
+             -> Kaiwu求解成功 | max_iterations=30 | timeout=30 | quantum_mode=False(经典模拟模式) | penalty_coeff=10.00
+[Q3 子簇对比] cluster_id=3 | travel=11.00 | penalty=1360.00 | objective=1371.00 | quantum_used=True
+             -> Kaiwu求解成功 | max_iterations=30 | timeout=30 | quantum_mode=False(经典模拟模式) | penalty_coeff=10.00
+[Q3 完成] 用时: 4360.93 秒
+[Q3 结果] 总目标值(成本+惩罚): 3539813.00
+[Q3 结果] 纯运输时间: 83.00
+[Q3 结果] 时间窗惩罚: 3539730.00
+[Q3 结果] 全局路线: [8, 48, 7, 18, 21, 22, 41, 42, 14, 38, 44, 37, 6, 13, 2, 15, 43, 16, 17, 47, 19, 11, 10, 32, 20, 9, 34, 35, 33, 3, 29, 24, 12, 28, 27, 49, 36, 46, 45, 5, 40, 26, 50, 1, 31, 30, 25, 4, 39, 23]
