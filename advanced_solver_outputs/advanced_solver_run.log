@@ -1,0 +1,192 @@
+=== 初始化数据管线 ===
+数据加载成功! 客户节点数: 50, 车辆额定容量: 60.0
+
+=== 构建时空相容性图 ===
+时空相容性图构建完成
+
+=== 开始求解第三问 (50节点单车时空聚类-量子协同) ===
+[Q3 进度] 聚类后子簇数: 7
+  - 子簇 1/7 | cluster_id=0 | 节点数=15 | 迭代次数=15 | 局部目标值=81676.00
+      * Q3迭代 01 | travel=16.00 | penalty=81660.00 | objective=81676.00 | route=[44, 38, 14, 16, 17, 45, 8, 36, 47, 19, 11, 31, 7, 18, 6]
+      * Q3迭代 02 | travel=16.00 | penalty=84960.00 | objective=84976.00 | route=[6, 18, 7, 31, 11, 19, 47, 36, 8, 45, 17, 16, 44, 38, 14]
+      * Q3迭代 03 | travel=21.00 | penalty=106580.00 | objective=106601.00 | route=[38, 44, 14, 16, 17, 45, 47, 8, 6, 18, 7, 19, 31, 11, 36]
+      * Q3迭代 04 | travel=23.00 | penalty=138520.00 | objective=138543.00 | route=[6, 14, 38, 44, 16, 17, 45, 7, 8, 18, 31, 19, 36, 11, 47]
+      * Q3迭代 05 | travel=25.00 | penalty=110900.00 | objective=110925.00 | route=[31, 6, 16, 14, 38, 44, 17, 18, 8, 47, 45, 36, 19, 7, 11]
+      * Q3迭代 06 | travel=30.00 | penalty=183580.00 | objective=183610.00 | route=[36, 31, 47, 11, 7, 45, 18, 19, 8, 17, 44, 14, 38, 16, 6]
+      * Q3迭代 07 | travel=32.00 | penalty=185180.00 | objective=185212.00 | route=[36, 7, 47, 11, 8, 19, 45, 16, 14, 44, 6, 31, 18, 17, 38]
+      * Q3迭代 08 | travel=36.00 | penalty=217020.00 | objective=217056.00 | route=[14, 16, 38, 6, 44, 17, 8, 31, 36, 7, 47, 11, 18, 45, 19]
+      * Q3迭代 09 | travel=40.00 | penalty=287600.00 | objective=287640.00 | route=[19, 18, 44, 45, 6, 14, 16, 38, 17, 47, 7, 36, 31, 8, 11]
+      * Q3迭代 10 | travel=48.00 | penalty=341840.00 | objective=341888.00 | route=[36, 45, 44, 47, 31, 6, 16, 17, 14, 8, 7, 38, 19, 18, 11]
+      * Q3迭代 11 | travel=58.00 | penalty=514820.00 | objective=514878.00 | route=[36, 18, 47, 44, 31, 17, 19, 38, 8, 14, 6, 7, 16, 45, 11]
+      * Q3迭代 12 | travel=59.00 | penalty=485580.00 | objective=485639.00 | route=[38, 47, 18, 36, 45, 44, 8, 16, 19, 17, 31, 14, 7, 6, 11]
+      * Q3迭代 13 | travel=60.00 | penalty=520920.00 | objective=520980.00 | route=[11, 45, 31, 44, 7, 14, 47, 17, 36, 18, 16, 8, 38, 6, 19]
+      * Q3迭代 14 | travel=60.00 | penalty=499960.00 | objective=500020.00 | route=[11, 45, 38, 18, 14, 31, 47, 6, 8, 44, 19, 16, 36, 17, 7]
+      * Q3迭代 15 | travel=64.00 | penalty=653120.00 | objective=653184.00 | route=[8, 36, 44, 18, 38, 31, 45, 14, 19, 6, 47, 16, 7, 17, 11]
+  - 子簇 2/7 | cluster_id=1 | 节点数=2 | 迭代次数=3 | 局部目标值=15.00
+      * Q3迭代 01 | travel=5.00 | penalty=180.00 | objective=185.00 | route=[49, 30]
+      * Q3迭代 02 | travel=5.00 | penalty=10.00 | objective=15.00 | route=[30, 49]
+      * Q3迭代 03 | travel=5.00 | penalty=10.00 | objective=15.00 | route=[30, 49]
+  - 子簇 3/7 | cluster_id=2 | 节点数=2 | 迭代次数=2 | 局部目标值=2.00
+      * Q3迭代 01 | travel=2.00 | penalty=0.00 | objective=2.00 | route=[43, 37]
+      * Q3迭代 02 | travel=2.00 | penalty=0.00 | objective=2.00 | route=[43, 37]
+  - 子簇 4/7 | cluster_id=3 | 节点数=6 | 迭代次数=15 | 局部目标值=3310.00
+      * Q3迭代 01 | travel=10.00 | penalty=4780.00 | objective=4790.00 | route=[34, 24, 26, 3, 50, 1]
+      * Q3迭代 02 | travel=10.00 | penalty=3300.00 | objective=3310.00 | route=[34, 1, 50, 3, 26, 24]
+      * Q3迭代 03 | travel=12.00 | penalty=7740.00 | objective=7752.00 | route=[26, 50, 34, 24, 3, 1]
+      * Q3迭代 04 | travel=12.00 | penalty=4340.00 | objective=4352.00 | route=[34, 3, 24, 50, 26, 1]
+      * Q3迭代 05 | travel=13.00 | penalty=11280.00 | objective=11293.00 | route=[26, 50, 24, 34, 1, 3]
+      * Q3迭代 06 | travel=13.00 | penalty=8020.00 | objective=8033.00 | route=[34, 3, 24, 1, 26, 50]
+      * Q3迭代 07 | travel=13.00 | penalty=9480.00 | objective=9493.00 | route=[26, 34, 3, 24, 1, 50]
+      * Q3迭代 08 | travel=15.00 | penalty=24520.00 | objective=24535.00 | route=[1, 24, 26, 34, 50, 3]
+      * Q3迭代 09 | travel=16.00 | penalty=10500.00 | objective=10516.00 | route=[3, 34, 26, 1, 24, 50]
+      * Q3迭代 10 | travel=14.00 | penalty=14020.00 | objective=14034.00 | route=[50, 24, 1, 34, 3, 26]
+      * Q3迭代 11 | travel=13.00 | penalty=8120.00 | objective=8133.00 | route=[50, 24, 26, 3, 34, 1]
+      * Q3迭代 12 | travel=15.00 | penalty=6120.00 | objective=6135.00 | route=[3, 50, 34, 26, 24, 1]
+      * Q3迭代 13 | travel=13.00 | penalty=5560.00 | objective=5573.00 | route=[3, 50, 34, 24, 26, 1]
+      * Q3迭代 14 | travel=13.00 | penalty=8680.00 | objective=8693.00 | route=[3, 50, 1, 24, 34, 26]
+      * Q3迭代 15 | travel=13.00 | penalty=8500.00 | objective=8513.00 | route=[50, 34, 24, 3, 1, 26]
+  - 子簇 5/7 | cluster_id=4 | 节点数=15 | 迭代次数=15 | 局部目标值=63159.00
+      * Q3迭代 01 | travel=19.00 | penalty=63140.00 | objective=63159.00 | route=[33, 29, 12, 28, 27, 2, 21, 4, 25, 39, 23, 22, 41, 42, 15]
+      * Q3迭代 02 | travel=19.00 | penalty=95320.00 | objective=95339.00 | route=[15, 42, 41, 22, 23, 39, 25, 4, 21, 2, 27, 28, 12, 33, 29]
+      * Q3迭代 03 | travel=23.00 | penalty=121180.00 | objective=121203.00 | route=[15, 42, 2, 41, 22, 23, 4, 39, 25, 29, 33, 12, 21, 28, 27]
+      * Q3迭代 04 | travel=27.00 | penalty=135700.00 | objective=135727.00 | route=[33, 27, 12, 29, 25, 23, 39, 4, 28, 21, 22, 15, 42, 41, 2]
+      * Q3迭代 05 | travel=31.00 | penalty=143260.00 | objective=143291.00 | route=[42, 2, 15, 41, 22, 21, 39, 29, 28, 33, 27, 12, 4, 23, 25]
+      * Q3迭代 06 | travel=31.00 | penalty=143580.00 | objective=143611.00 | route=[42, 2, 15, 41, 22, 39, 21, 23, 4, 12, 27, 33, 28, 29, 25]
+      * Q3迭代 07 | travel=37.00 | penalty=215980.00 | objective=216017.00 | route=[33, 25, 28, 4, 29, 12, 39, 41, 22, 42, 2, 15, 23, 21, 27]
+      * Q3迭代 08 | travel=39.00 | penalty=235120.00 | objective=235159.00 | route=[29, 4, 41, 23, 15, 22, 39, 28, 2, 42, 27, 21, 12, 25, 33]
+      * Q3迭代 09 | travel=42.00 | penalty=269720.00 | objective=269762.00 | route=[29, 27, 42, 21, 25, 12, 23, 41, 15, 2, 28, 39, 22, 4, 33]
+      * Q3迭代 10 | travel=44.00 | penalty=295840.00 | objective=295884.00 | route=[33, 25, 21, 15, 41, 23, 29, 27, 42, 28, 4, 22, 2, 39, 12]
+      * Q3迭代 11 | travel=47.00 | penalty=305760.00 | objective=305807.00 | route=[27, 29, 4, 41, 39, 33, 25, 22, 28, 15, 21, 42, 23, 2, 12]
+      * Q3迭代 12 | travel=47.00 | penalty=317380.00 | objective=317427.00 | route=[33, 21, 15, 28, 25, 27, 29, 4, 41, 39, 2, 23, 42, 22, 12]
+      * Q3迭代 13 | travel=52.00 | penalty=345300.00 | objective=345352.00 | route=[28, 42, 33, 4, 27, 23, 12, 2, 22, 25, 41, 21, 29, 39, 15]
+      * Q3迭代 14 | travel=56.00 | penalty=437760.00 | objective=437816.00 | route=[33, 23, 28, 42, 12, 22, 29, 21, 15, 39, 27, 4, 2, 41, 25]
+      * Q3迭代 15 | travel=60.00 | penalty=491500.00 | objective=491560.00 | route=[29, 23, 33, 21, 41, 28, 22, 27, 39, 42, 25, 2, 4, 15, 12]
+  - 子簇 6/7 | cluster_id=5 | 节点数=5 | 迭代次数=5 | 局部目标值=11.00
+      * Q3迭代 01 | travel=9.00 | penalty=2000.00 | objective=2009.00 | route=[35, 9, 40, 13, 5]
+      * Q3迭代 02 | travel=9.00 | penalty=40.00 | objective=49.00 | route=[5, 13, 40, 9, 35]
+      * Q3迭代 03 | travel=11.00 | penalty=3200.00 | objective=3211.00 | route=[35, 9, 13, 40, 5]
+      * Q3迭代 04 | travel=11.00 | penalty=0.00 | objective=11.00 | route=[5, 40, 13, 9, 35]
+      * Q3迭代 05 | travel=11.00 | penalty=0.00 | objective=11.00 | route=[5, 40, 13, 9, 35]
+  - 子簇 7/7 | cluster_id=6 | 节点数=5 | 迭代次数=15 | 局部目标值=647.00
+      * Q3迭代 01 | travel=6.00 | penalty=720.00 | objective=726.00 | route=[46, 48, 10, 32, 20]
+      * Q3迭代 02 | travel=6.00 | penalty=1280.00 | objective=1286.00 | route=[20, 32, 10, 48, 46]
+      * Q3迭代 03 | travel=7.00 | penalty=640.00 | objective=647.00 | route=[46, 48, 10, 20, 32]
+      * Q3迭代 04 | travel=10.00 | penalty=2140.00 | objective=2150.00 | route=[46, 48, 20, 10, 32]
+      * Q3迭代 05 | travel=13.00 | penalty=6220.00 | objective=6233.00 | route=[20, 46, 48, 32, 10]
+      * Q3迭代 06 | travel=16.00 | penalty=10140.00 | objective=10156.00 | route=[32, 48, 10, 46, 20]
+      * Q3迭代 07 | travel=16.00 | penalty=9560.00 | objective=9576.00 | route=[32, 46, 10, 48, 20]
+      * Q3迭代 08 | travel=17.00 | penalty=5500.00 | objective=5517.00 | route=[10, 20, 46, 32, 48]
+      * Q3迭代 09 | travel=10.00 | penalty=1700.00 | objective=1710.00 | route=[10, 20, 32, 46, 48]
+      * Q3迭代 10 | travel=7.00 | penalty=640.00 | objective=647.00 | route=[46, 48, 10, 20, 32]
+      * Q3迭代 11 | travel=13.00 | penalty=5500.00 | objective=5513.00 | route=[20, 48, 10, 32, 46]
+      * Q3迭代 12 | travel=7.00 | penalty=640.00 | objective=647.00 | route=[46, 48, 10, 20, 32]
+      * Q3迭代 13 | travel=11.00 | penalty=5140.00 | objective=5151.00 | route=[32, 20, 46, 48, 10]
+      * Q3迭代 14 | travel=12.00 | penalty=6120.00 | objective=6132.00 | route=[32, 20, 48, 46, 10]
+      * Q3迭代 15 | travel=10.00 | penalty=1300.00 | objective=1310.00 | route=[46, 32, 20, 10, 48]
+[Q3 完成] 用时: 213.43 秒
+[Q3 结果] 总目标值(成本+惩罚): 9919598.00
+[Q3 结果] 纯运输时间: 98.00
+[Q3 结果] 时间窗惩罚: 9919500.00
+[Q3 结果] 全局路线: [33, 29, 12, 28, 27, 2, 21, 4, 25, 39, 23, 22, 41, 42, 15, 43, 37, 46, 48, 10, 20, 32, 5, 40, 13, 9, 35, 34, 1, 50, 3, 26, 24, 30, 49, 44, 38, 14, 16, 17, 45, 8, 36, 47, 19, 11, 31, 7, 18, 6]
+
+=== 开始求解第四问 (50节点多车受限 - 列生成) ===
+系统总需求: 271.0, 理论最小车辆数: 5
+开始扫描车辆数约束帕累托前沿: [8, 7, 6, 5]
+[Q4 进度] 正在求解 1/4 : V_max = 8
+      * Q4迭代 01 | LP=269318.00 | rc=-166190.00 | selected=[1, 2, 3, 4, 8, 12, 15, 21, 22, 23, 36, 39, 44, 45, 47] | route=[47, 36, 8, 45, 44, 15, 2, 21, 22, 23, 39, 4, 12, 3, 1] | added=True | duplicate=False | no_improve=0 | columns=56
+      * Q4迭代 02 | LP=269318.00 | rc=-218350.00 | selected=[1, 2, 3, 4, 6, 10, 15, 21, 23, 25, 36, 39, 47] | route=[6, 15, 2, 21, 23, 39, 25, 4, 3, 1, 10, 47, 36] | added=True | duplicate=False | no_improve=0 | columns=57
+      * Q4迭代 03 | LP=269318.00 | rc=-163365.00 | selected=[1, 4, 5, 7, 12, 13, 15, 21, 22, 23, 25, 29, 36, 39] | route=[36, 7, 1, 29, 12, 21, 4, 25, 39, 23, 22, 15, 13, 5] | added=True | duplicate=False | no_improve=0 | columns=58
+      * Q4迭代 04 | LP=269318.00 | rc=-169548.00 | selected=[1, 2, 4, 5, 7, 12, 15, 18, 21, 23, 30, 36, 39, 44] | route=[36, 7, 18, 5, 44, 15, 2, 21, 23, 39, 4, 12, 1, 30] | added=True | duplicate=False | no_improve=0 | columns=59
+      * Q4迭代 05 | LP=269318.00 | rc=-140487.00 | selected=[1, 2, 4, 5, 7, 8, 13, 15, 18, 21, 23, 36, 38, 39, 47] | route=[38, 15, 23, 39, 4, 21, 2, 13, 5, 18, 8, 36, 47, 7, 1] | added=True | duplicate=False | no_improve=0 | columns=60
+      * Q4迭代 06 | LP=269318.00 | rc=-209499.00 | selected=[1, 2, 5, 8, 13, 15, 20, 21, 29, 30, 39, 41] | route=[8, 5, 13, 2, 15, 41, 21, 39, 29, 1, 30, 20] | added=True | duplicate=False | no_improve=0 | columns=61
+      * Q4迭代 07 | LP=269318.00 | rc=-171424.00 | selected=[1, 2, 4, 5, 9, 11, 12, 21, 23, 24, 29, 38, 39, 44] | route=[38, 44, 5, 2, 21, 23, 39, 4, 24, 29, 12, 9, 1, 11] | added=True | duplicate=False | no_improve=0 | columns=62
+      * Q4迭代 08 | LP=269318.00 | rc=-217513.00 | selected=[1, 2, 5, 7, 11, 21, 24, 25, 30, 34, 45] | route=[2, 21, 25, 24, 34, 1, 30, 11, 7, 45, 5] | added=True | duplicate=False | no_improve=0 | columns=63
+      * Q4迭代 09 | LP=269318.00 | rc=-227380.00 | selected=[1, 3, 8, 9, 10, 12, 14, 21, 26, 30, 38] | route=[38, 14, 21, 26, 12, 3, 9, 1, 30, 10, 8] | added=True | duplicate=False | no_improve=0 | columns=64
+      * Q4迭代 10 | LP=269318.00 | rc=-208191.00 | selected=[1, 3, 8, 15, 16, 18, 21, 25, 26, 27, 29, 44] | route=[25, 29, 3, 26, 21, 15, 44, 16, 8, 18, 27, 1] | added=True | duplicate=False | no_improve=0 | columns=65
+      * Q4迭代 11 | LP=269318.00 | rc=-180956.00 | selected=[2, 12, 15, 16, 21, 23, 25, 28, 32, 39, 41, 45, 46] | route=[46, 45, 16, 15, 41, 2, 21, 23, 39, 25, 12, 28, 32] | added=True | duplicate=False | no_improve=0 | columns=66
+      * Q4迭代 12 | LP=269318.00 | rc=-189188.80 | selected=[2, 9, 16, 29, 31, 32, 36, 41, 44, 45, 49] | route=[29, 9, 31, 32, 49, 36, 45, 16, 44, 2, 41] | added=True | duplicate=False | no_improve=0 | columns=67
+      * Q4迭代 13 | LP=269318.00 | rc=-224566.71 | selected=[1, 5, 17, 28, 30, 37, 41, 44, 46, 47, 49] | route=[30, 1, 28, 41, 37, 44, 5, 17, 46, 47, 49] | added=True | duplicate=False | no_improve=0 | columns=68
+      * Q4迭代 14 | LP=269318.00 | rc=-205701.20 | selected=[8, 11, 22, 23, 27, 32, 38, 41, 44, 50] | route=[23, 22, 41, 27, 50, 32, 11, 8, 44, 38] | added=True | duplicate=False | no_improve=0 | columns=69
+      * Q4迭代 15 | LP=269318.00 | rc=-198365.00 | selected=[2, 13, 16, 19, 25, 28, 29, 33, 38, 43, 45, 47] | route=[19, 47, 45, 16, 38, 43, 2, 13, 28, 33, 29, 25] | added=True | duplicate=False | no_improve=0 | columns=70
+      * Q4迭代 16 | LP=269318.00 | rc=-189949.31 | selected=[8, 12, 19, 20, 24, 25, 36, 37, 39, 42, 44, 45] | route=[42, 37, 44, 45, 8, 36, 19, 20, 12, 24, 25, 39] | added=True | duplicate=False | no_improve=0 | columns=71
+      * Q4迭代 17 | LP=269318.00 | rc=-144490.00 | selected=[7, 12, 18, 21, 23, 29, 32, 34, 35, 42, 46, 47, 50] | route=[42, 18, 7, 46, 47, 32, 50, 35, 34, 29, 12, 21, 23] | added=True | duplicate=False | no_improve=0 | columns=72
+      * Q4迭代 18 | LP=269318.00 | rc=-119202.33 | selected=[4, 11, 12, 16, 18, 20, 23, 29, 40, 45, 46, 47, 48] | route=[23, 4, 40, 12, 29, 20, 11, 48, 47, 46, 45, 18, 16] | added=True | duplicate=False | no_improve=0 | columns=73
+      * Q4迭代 19 | LP=269318.00 | rc=-150925.65 | selected=[12, 16, 17, 18, 23, 27, 29, 31, 34, 39, 47, 48] | route=[23, 39, 29, 34, 12, 27, 31, 48, 47, 18, 17, 16] | added=True | duplicate=False | no_improve=0 | columns=74
+      * Q4迭代 20 | LP=269318.00 | rc=-152856.78 | selected=[21, 23, 29, 31, 33, 35, 36, 38, 39, 45, 46, 48, 50] | route=[23, 39, 21, 29, 35, 33, 50, 31, 48, 36, 46, 45, 38] | added=True | duplicate=False | no_improve=0 | columns=75
+[Q4 完成] V_max = 8 | 用时: 743.55 秒 | LP目标值=269318.00 | 整数目标值=269318.00 | 列数=75
+[Q4 进度] 正在求解 2/4 : V_max = 7
+      * Q4迭代 01 | LP=269318.00 | rc=-166190.00 | selected=[1, 2, 3, 4, 8, 12, 15, 21, 22, 23, 36, 39, 44, 45, 47] | route=[47, 36, 8, 45, 44, 15, 2, 21, 22, 23, 39, 4, 12, 3, 1] | added=True | duplicate=False | no_improve=0 | columns=56
+      * Q4迭代 02 | LP=269318.00 | rc=-218350.00 | selected=[1, 2, 3, 4, 6, 10, 15, 21, 23, 25, 36, 39, 47] | route=[6, 15, 2, 21, 23, 39, 25, 4, 3, 1, 10, 47, 36] | added=True | duplicate=False | no_improve=0 | columns=57
+      * Q4迭代 03 | LP=269318.00 | rc=-163365.00 | selected=[1, 4, 5, 7, 12, 13, 15, 21, 22, 23, 25, 29, 36, 39] | route=[36, 7, 1, 29, 12, 21, 4, 25, 39, 23, 22, 15, 13, 5] | added=True | duplicate=False | no_improve=0 | columns=58
+      * Q4迭代 04 | LP=269318.00 | rc=-169548.00 | selected=[1, 2, 4, 5, 7, 12, 15, 18, 21, 23, 30, 36, 39, 44] | route=[36, 7, 18, 5, 44, 15, 2, 21, 23, 39, 4, 12, 1, 30] | added=True | duplicate=False | no_improve=0 | columns=59
+      * Q4迭代 05 | LP=269318.00 | rc=-140487.00 | selected=[1, 2, 4, 5, 7, 8, 13, 15, 18, 21, 23, 36, 38, 39, 47] | route=[38, 15, 23, 39, 4, 21, 2, 13, 5, 18, 8, 36, 47, 7, 1] | added=True | duplicate=False | no_improve=0 | columns=60
+      * Q4迭代 06 | LP=269318.00 | rc=-209499.00 | selected=[1, 2, 5, 8, 13, 15, 20, 21, 29, 30, 39, 41] | route=[8, 5, 13, 2, 15, 41, 21, 39, 29, 1, 30, 20] | added=True | duplicate=False | no_improve=0 | columns=61
+      * Q4迭代 07 | LP=269318.00 | rc=-171424.00 | selected=[1, 2, 4, 5, 9, 11, 12, 21, 23, 24, 29, 38, 39, 44] | route=[38, 44, 5, 2, 21, 23, 39, 4, 24, 29, 12, 9, 1, 11] | added=True | duplicate=False | no_improve=0 | columns=62
+      * Q4迭代 08 | LP=269318.00 | rc=-217513.00 | selected=[1, 2, 5, 7, 11, 21, 24, 25, 30, 34, 45] | route=[2, 21, 25, 24, 34, 1, 30, 11, 7, 45, 5] | added=True | duplicate=False | no_improve=0 | columns=63
+      * Q4迭代 09 | LP=269318.00 | rc=-227380.00 | selected=[1, 3, 8, 9, 10, 12, 14, 21, 26, 30, 38] | route=[38, 14, 21, 26, 12, 3, 9, 1, 30, 10, 8] | added=True | duplicate=False | no_improve=0 | columns=64
+      * Q4迭代 10 | LP=269318.00 | rc=-208191.00 | selected=[1, 3, 8, 15, 16, 18, 21, 25, 26, 27, 29, 44] | route=[25, 29, 3, 26, 21, 15, 44, 16, 8, 18, 27, 1] | added=True | duplicate=False | no_improve=0 | columns=65
+      * Q4迭代 11 | LP=269318.00 | rc=-180956.00 | selected=[2, 12, 15, 16, 21, 23, 25, 28, 32, 39, 41, 45, 46] | route=[46, 45, 16, 15, 41, 2, 21, 23, 39, 25, 12, 28, 32] | added=True | duplicate=False | no_improve=0 | columns=66
+      * Q4迭代 12 | LP=269318.00 | rc=-189188.80 | selected=[2, 9, 16, 29, 31, 32, 36, 41, 44, 45, 49] | route=[29, 9, 31, 32, 49, 36, 45, 16, 44, 2, 41] | added=True | duplicate=False | no_improve=0 | columns=67
+      * Q4迭代 13 | LP=269318.00 | rc=-224566.71 | selected=[1, 5, 17, 28, 30, 37, 41, 44, 46, 47, 49] | route=[30, 1, 28, 41, 37, 44, 5, 17, 46, 47, 49] | added=True | duplicate=False | no_improve=0 | columns=68
+      * Q4迭代 14 | LP=269318.00 | rc=-205701.20 | selected=[8, 11, 22, 23, 27, 32, 38, 41, 44, 50] | route=[23, 22, 41, 27, 50, 32, 11, 8, 44, 38] | added=True | duplicate=False | no_improve=0 | columns=69
+      * Q4迭代 15 | LP=269318.00 | rc=-198365.00 | selected=[2, 13, 16, 19, 25, 28, 29, 33, 38, 43, 45, 47] | route=[19, 47, 45, 16, 38, 43, 2, 13, 28, 33, 29, 25] | added=True | duplicate=False | no_improve=0 | columns=70
+      * Q4迭代 16 | LP=269318.00 | rc=-189949.31 | selected=[8, 12, 19, 20, 24, 25, 36, 37, 39, 42, 44, 45] | route=[42, 37, 44, 45, 8, 36, 19, 20, 12, 24, 25, 39] | added=True | duplicate=False | no_improve=0 | columns=71
+      * Q4迭代 17 | LP=269318.00 | rc=-144490.00 | selected=[7, 12, 18, 21, 23, 29, 32, 34, 35, 42, 46, 47, 50] | route=[42, 18, 7, 46, 47, 32, 50, 35, 34, 29, 12, 21, 23] | added=True | duplicate=False | no_improve=0 | columns=72
+      * Q4迭代 18 | LP=269318.00 | rc=-119202.33 | selected=[4, 11, 12, 16, 18, 20, 23, 29, 40, 45, 46, 47, 48] | route=[23, 4, 40, 12, 29, 20, 11, 48, 47, 46, 45, 18, 16] | added=True | duplicate=False | no_improve=0 | columns=73
+      * Q4迭代 19 | LP=269318.00 | rc=-150925.65 | selected=[12, 16, 17, 18, 23, 27, 29, 31, 34, 39, 47, 48] | route=[23, 39, 29, 34, 12, 27, 31, 48, 47, 18, 17, 16] | added=True | duplicate=False | no_improve=0 | columns=74
+      * Q4迭代 20 | LP=269318.00 | rc=-152856.78 | selected=[21, 23, 29, 31, 33, 35, 36, 38, 39, 45, 46, 48, 50] | route=[23, 39, 21, 29, 35, 33, 50, 31, 48, 36, 46, 45, 38] | added=True | duplicate=False | no_improve=0 | columns=75
+[Q4 完成] V_max = 7 | 用时: 848.65 秒 | LP目标值=269318.00 | 整数目标值=269318.00 | 列数=75
+[Q4 进度] 正在求解 3/4 : V_max = 6
+      * Q4迭代 01 | LP=269318.00 | rc=-166190.00 | selected=[1, 2, 3, 4, 8, 12, 15, 21, 22, 23, 36, 39, 44, 45, 47] | route=[47, 36, 8, 45, 44, 15, 2, 21, 22, 23, 39, 4, 12, 3, 1] | added=True | duplicate=False | no_improve=0 | columns=56
+      * Q4迭代 02 | LP=269318.00 | rc=-218350.00 | selected=[1, 2, 3, 4, 6, 10, 15, 21, 23, 25, 36, 39, 47] | route=[6, 15, 2, 21, 23, 39, 25, 4, 3, 1, 10, 47, 36] | added=True | duplicate=False | no_improve=0 | columns=57
+      * Q4迭代 03 | LP=269318.00 | rc=-163365.00 | selected=[1, 4, 5, 7, 12, 13, 15, 21, 22, 23, 25, 29, 36, 39] | route=[36, 7, 1, 29, 12, 21, 4, 25, 39, 23, 22, 15, 13, 5] | added=True | duplicate=False | no_improve=0 | columns=58
+      * Q4迭代 04 | LP=269318.00 | rc=-169548.00 | selected=[1, 2, 4, 5, 7, 12, 15, 18, 21, 23, 30, 36, 39, 44] | route=[36, 7, 18, 5, 44, 15, 2, 21, 23, 39, 4, 12, 1, 30] | added=True | duplicate=False | no_improve=0 | columns=59
+      * Q4迭代 05 | LP=269318.00 | rc=-140487.00 | selected=[1, 2, 4, 5, 7, 8, 13, 15, 18, 21, 23, 36, 38, 39, 47] | route=[38, 15, 23, 39, 4, 21, 2, 13, 5, 18, 8, 36, 47, 7, 1] | added=True | duplicate=False | no_improve=0 | columns=60
+      * Q4迭代 06 | LP=269318.00 | rc=-209499.00 | selected=[1, 2, 5, 8, 13, 15, 20, 21, 29, 30, 39, 41] | route=[8, 5, 13, 2, 15, 41, 21, 39, 29, 1, 30, 20] | added=True | duplicate=False | no_improve=0 | columns=61
+      * Q4迭代 07 | LP=269318.00 | rc=-171424.00 | selected=[1, 2, 4, 5, 9, 11, 12, 21, 23, 24, 29, 38, 39, 44] | route=[38, 44, 5, 2, 21, 23, 39, 4, 24, 29, 12, 9, 1, 11] | added=True | duplicate=False | no_improve=0 | columns=62
+      * Q4迭代 08 | LP=269318.00 | rc=-217513.00 | selected=[1, 2, 5, 7, 11, 21, 24, 25, 30, 34, 45] | route=[2, 21, 25, 24, 34, 1, 30, 11, 7, 45, 5] | added=True | duplicate=False | no_improve=0 | columns=63
+      * Q4迭代 09 | LP=269318.00 | rc=-227380.00 | selected=[1, 3, 8, 9, 10, 12, 14, 21, 26, 30, 38] | route=[38, 14, 21, 26, 12, 3, 9, 1, 30, 10, 8] | added=True | duplicate=False | no_improve=0 | columns=64
+      * Q4迭代 10 | LP=269318.00 | rc=-208191.00 | selected=[1, 3, 8, 15, 16, 18, 21, 25, 26, 27, 29, 44] | route=[25, 29, 3, 26, 21, 15, 44, 16, 8, 18, 27, 1] | added=True | duplicate=False | no_improve=0 | columns=65
+      * Q4迭代 11 | LP=269318.00 | rc=-180956.00 | selected=[2, 12, 15, 16, 21, 23, 25, 28, 32, 39, 41, 45, 46] | route=[46, 45, 16, 15, 41, 2, 21, 23, 39, 25, 12, 28, 32] | added=True | duplicate=False | no_improve=0 | columns=66
+      * Q4迭代 12 | LP=269318.00 | rc=-189188.80 | selected=[2, 9, 16, 29, 31, 32, 36, 41, 44, 45, 49] | route=[29, 9, 31, 32, 49, 36, 45, 16, 44, 2, 41] | added=True | duplicate=False | no_improve=0 | columns=67
+      * Q4迭代 13 | LP=269318.00 | rc=-224566.71 | selected=[1, 5, 17, 28, 30, 37, 41, 44, 46, 47, 49] | route=[30, 1, 28, 41, 37, 44, 5, 17, 46, 47, 49] | added=True | duplicate=False | no_improve=0 | columns=68
+      * Q4迭代 14 | LP=269318.00 | rc=-205701.20 | selected=[8, 11, 22, 23, 27, 32, 38, 41, 44, 50] | route=[23, 22, 41, 27, 50, 32, 11, 8, 44, 38] | added=True | duplicate=False | no_improve=0 | columns=69
+      * Q4迭代 15 | LP=269318.00 | rc=-198365.00 | selected=[2, 13, 16, 19, 25, 28, 29, 33, 38, 43, 45, 47] | route=[19, 47, 45, 16, 38, 43, 2, 13, 28, 33, 29, 25] | added=True | duplicate=False | no_improve=0 | columns=70
+      * Q4迭代 16 | LP=269318.00 | rc=-189949.31 | selected=[8, 12, 19, 20, 24, 25, 36, 37, 39, 42, 44, 45] | route=[42, 37, 44, 45, 8, 36, 19, 20, 12, 24, 25, 39] | added=True | duplicate=False | no_improve=0 | columns=71
+      * Q4迭代 17 | LP=269318.00 | rc=-144490.00 | selected=[7, 12, 18, 21, 23, 29, 32, 34, 35, 42, 46, 47, 50] | route=[42, 18, 7, 46, 47, 32, 50, 35, 34, 29, 12, 21, 23] | added=True | duplicate=False | no_improve=0 | columns=72
+      * Q4迭代 18 | LP=269318.00 | rc=-119202.33 | selected=[4, 11, 12, 16, 18, 20, 23, 29, 40, 45, 46, 47, 48] | route=[23, 4, 40, 12, 29, 20, 11, 48, 47, 46, 45, 18, 16] | added=True | duplicate=False | no_improve=0 | columns=73
+      * Q4迭代 19 | LP=269318.00 | rc=-150925.65 | selected=[12, 16, 17, 18, 23, 27, 29, 31, 34, 39, 47, 48] | route=[23, 39, 29, 34, 12, 27, 31, 48, 47, 18, 17, 16] | added=True | duplicate=False | no_improve=0 | columns=74
+      * Q4迭代 20 | LP=269318.00 | rc=-152856.78 | selected=[21, 23, 29, 31, 33, 35, 36, 38, 39, 45, 46, 48, 50] | route=[23, 39, 21, 29, 35, 33, 50, 31, 48, 36, 46, 45, 38] | added=True | duplicate=False | no_improve=0 | columns=75
+[Q4 完成] V_max = 6 | 用时: 675.15 秒 | LP目标值=269318.00 | 整数目标值=269318.00 | 列数=75
+[Q4 进度] 正在求解 4/4 : V_max = 5
+      * Q4迭代 01 | LP=269318.00 | rc=-166190.00 | selected=[1, 2, 3, 4, 8, 12, 15, 21, 22, 23, 36, 39, 44, 45, 47] | route=[47, 36, 8, 45, 44, 15, 2, 21, 22, 23, 39, 4, 12, 3, 1] | added=True | duplicate=False | no_improve=0 | columns=56
+      * Q4迭代 02 | LP=269318.00 | rc=-218350.00 | selected=[1, 2, 3, 4, 6, 10, 15, 21, 23, 25, 36, 39, 47] | route=[6, 15, 2, 21, 23, 39, 25, 4, 3, 1, 10, 47, 36] | added=True | duplicate=False | no_improve=0 | columns=57
+      * Q4迭代 03 | LP=269318.00 | rc=-163365.00 | selected=[1, 4, 5, 7, 12, 13, 15, 21, 22, 23, 25, 29, 36, 39] | route=[36, 7, 1, 29, 12, 21, 4, 25, 39, 23, 22, 15, 13, 5] | added=True | duplicate=False | no_improve=0 | columns=58
+      * Q4迭代 04 | LP=269318.00 | rc=-169548.00 | selected=[1, 2, 4, 5, 7, 12, 15, 18, 21, 23, 30, 36, 39, 44] | route=[36, 7, 18, 5, 44, 15, 2, 21, 23, 39, 4, 12, 1, 30] | added=True | duplicate=False | no_improve=0 | columns=59
+      * Q4迭代 05 | LP=269318.00 | rc=-140487.00 | selected=[1, 2, 4, 5, 7, 8, 13, 15, 18, 21, 23, 36, 38, 39, 47] | route=[38, 15, 23, 39, 4, 21, 2, 13, 5, 18, 8, 36, 47, 7, 1] | added=True | duplicate=False | no_improve=0 | columns=60
+      * Q4迭代 06 | LP=269318.00 | rc=-209499.00 | selected=[1, 2, 5, 8, 13, 15, 20, 21, 29, 30, 39, 41] | route=[8, 5, 13, 2, 15, 41, 21, 39, 29, 1, 30, 20] | added=True | duplicate=False | no_improve=0 | columns=61
+      * Q4迭代 07 | LP=269318.00 | rc=-171424.00 | selected=[1, 2, 4, 5, 9, 11, 12, 21, 23, 24, 29, 38, 39, 44] | route=[38, 44, 5, 2, 21, 23, 39, 4, 24, 29, 12, 9, 1, 11] | added=True | duplicate=False | no_improve=0 | columns=62
+      * Q4迭代 08 | LP=269318.00 | rc=-217513.00 | selected=[1, 2, 5, 7, 11, 21, 24, 25, 30, 34, 45] | route=[2, 21, 25, 24, 34, 1, 30, 11, 7, 45, 5] | added=True | duplicate=False | no_improve=0 | columns=63
+      * Q4迭代 09 | LP=269318.00 | rc=-227380.00 | selected=[1, 3, 8, 9, 10, 12, 14, 21, 26, 30, 38] | route=[38, 14, 21, 26, 12, 3, 9, 1, 30, 10, 8] | added=True | duplicate=False | no_improve=0 | columns=64
+      * Q4迭代 10 | LP=269318.00 | rc=-208191.00 | selected=[1, 3, 8, 15, 16, 18, 21, 25, 26, 27, 29, 44] | route=[25, 29, 3, 26, 21, 15, 44, 16, 8, 18, 27, 1] | added=True | duplicate=False | no_improve=0 | columns=65
+      * Q4迭代 11 | LP=269318.00 | rc=-180956.00 | selected=[2, 12, 15, 16, 21, 23, 25, 28, 32, 39, 41, 45, 46] | route=[46, 45, 16, 15, 41, 2, 21, 23, 39, 25, 12, 28, 32] | added=True | duplicate=False | no_improve=0 | columns=66
+      * Q4迭代 12 | LP=269318.00 | rc=-189188.80 | selected=[2, 9, 16, 29, 31, 32, 36, 41, 44, 45, 49] | route=[29, 9, 31, 32, 49, 36, 45, 16, 44, 2, 41] | added=True | duplicate=False | no_improve=0 | columns=67
+      * Q4迭代 13 | LP=269318.00 | rc=-224566.71 | selected=[1, 5, 17, 28, 30, 37, 41, 44, 46, 47, 49] | route=[30, 1, 28, 41, 37, 44, 5, 17, 46, 47, 49] | added=True | duplicate=False | no_improve=0 | columns=68
+      * Q4迭代 14 | LP=269318.00 | rc=-207884.00 | selected=[8, 11, 22, 23, 27, 32, 38, 41, 44, 50] | route=[23, 22, 41, 27, 50, 32, 11, 8, 44, 38] | added=True | duplicate=False | no_improve=0 | columns=69
+      * Q4迭代 15 | LP=269318.00 | rc=-198365.00 | selected=[2, 13, 16, 19, 25, 28, 29, 33, 38, 43, 45, 47] | route=[19, 47, 45, 16, 38, 43, 2, 13, 28, 33, 29, 25] | added=True | duplicate=False | no_improve=0 | columns=70
+      * Q4迭代 16 | LP=269318.00 | rc=-239681.87 | selected=[8, 12, 16, 20, 24, 25, 29, 35, 36, 37, 42, 45, 47] | route=[42, 37, 16, 45, 8, 36, 47, 20, 35, 29, 24, 25, 12] | added=True | duplicate=False | no_improve=0 | columns=71
+      * Q4迭代 17 | LP=269318.00 | rc=-179933.51 | selected=[9, 18, 22, 27, 28, 29, 30, 39, 42, 45, 46, 47, 48] | route=[29, 9, 30, 28, 27, 18, 48, 47, 46, 45, 42, 22, 39] | added=True | duplicate=False | no_improve=0 | columns=72
+      * Q4迭代 18 | LP=269318.00 | rc=-150355.89 | selected=[11, 12, 17, 18, 20, 21, 31, 36, 39, 43, 44, 45] | route=[39, 12, 21, 43, 44, 17, 45, 18, 31, 20, 11, 36] | added=True | duplicate=False | no_improve=0 | columns=73
+      * Q4迭代 19 | LP=269318.00 | rc=-195816.00 | selected=[12, 23, 29, 30, 31, 32, 33, 34, 39, 40, 47] | route=[47, 31, 32, 30, 33, 34, 29, 12, 40, 39, 23] | added=True | duplicate=False | no_improve=0 | columns=74
+      * Q4迭代 20 | LP=269318.00 | rc=-278167.76 | selected=[7, 18, 19, 20, 26, 28, 34, 36, 39, 41, 42] | route=[36, 19, 7, 18, 42, 41, 39, 26, 28, 34, 20] | added=True | duplicate=False | no_improve=0 | columns=75
+[Q4 完成] V_max = 5 | 用时: 629.74 秒 | LP目标值=269318.00 | 整数目标值=269318.00 | 列数=75
+
+[Q4 敏感性分析结果]
+ -> 允许最多 8 辆车时, 综合最优成本为: 269318.00
+ -> 允许最多 7 辆车时, 综合最优成本为: 269318.00
+ -> 允许最多 6 辆车时, 综合最优成本为: 269318.00
+ -> 允许最多 5 辆车时, 综合最优成本为: 269318.00
+
+总耗时: 3114.06 秒
+结果 JSON 已保存到: advanced_solver_outputs\advanced_solver_results.json
+详细日志已保存到: advanced_solver_outputs\advanced_solver_run.log
