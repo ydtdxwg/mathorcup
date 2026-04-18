@@ -38,22 +38,28 @@ def main() -> None:
     q3_elapsed = time.perf_counter() - q3_start
 
     log(f"[Q3 进度] 聚类后子簇数: {len(q3_solution.cluster_results)}")
+    q3_quantum_clusters = sum(1 for result in q3_solution.cluster_results if result.quantum_used)
+    log(f"[Q3 量子状态] 成功调用Kaiwu的子簇数: {q3_quantum_clusters}/{len(q3_solution.cluster_results)}")
     for idx, cluster_result in enumerate(q3_solution.cluster_results, start=1):
         log(
             f"  - 子簇 {idx}/{len(q3_solution.cluster_results)} | "
             f"cluster_id={cluster_result.cluster_id} | "
             f"节点数={len(cluster_result.route)} | "
             f"迭代次数={cluster_result.iterations} | "
-            f"局部目标值={cluster_result.objective:.2f}"
+            f"局部目标值={cluster_result.objective:.2f} | "
+            f"量子状态={'Kaiwu成功' if cluster_result.quantum_used else '经典回退'}"
         )
+        log(f"      * 求解说明: {cluster_result.quantum_message}")
         for iteration_log in cluster_result.iteration_logs:
             log(
                 f"      * Q3迭代 {iteration_log.iteration:02d} | "
+                f"mode={iteration_log.solver_mode} | "
                 f"travel={iteration_log.travel_cost:.2f} | "
                 f"penalty={iteration_log.total_penalty:.2f} | "
                 f"objective={iteration_log.objective:.2f} | "
                 f"route={iteration_log.route}"
             )
+            log(f"        -> {iteration_log.solver_message}")
     log(f"[Q3 完成] 用时: {q3_elapsed:.2f} 秒")
     log(f"[Q3 结果] 总目标值(成本+惩罚): {q3_solution.global_result.objective:.2f}")
     log(f"[Q3 结果] 纯运输时间: {q3_solution.global_result.travel_cost:.2f}")
@@ -166,6 +172,8 @@ def main() -> None:
                     "travel_cost": result.travel_cost,
                     "total_penalty": result.total_penalty,
                     "objective": result.objective,
+                    "quantum_used": result.quantum_used,
+                    "quantum_message": result.quantum_message,
                     "arrival_times": {str(k): v for k, v in result.arrival_times.items()},
                     "penalties": {str(k): v for k, v in result.penalties.items()},
                     "iteration_logs": [
@@ -175,6 +183,8 @@ def main() -> None:
                             "travel_cost": item.travel_cost,
                             "total_penalty": item.total_penalty,
                             "objective": item.objective,
+                            "solver_mode": item.solver_mode,
+                            "solver_message": item.solver_message,
                         }
                         for item in result.iteration_logs
                     ],

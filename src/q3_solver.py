@@ -58,6 +58,8 @@ class ClusterIterationLog:
     travel_cost: float
     total_penalty: float
     objective: float
+    solver_mode: str
+    solver_message: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +77,8 @@ class ClusterSolveResult:
     iterations: int
     weight_matrix: np.ndarray
     iteration_logs: List[ClusterIterationLog]
+    quantum_used: bool
+    quantum_message: str
 
     @property
     def entry_node(self) -> int:
@@ -217,6 +221,8 @@ class AsyncClusterSolver:
         self._tolerance = tolerance
         self._quantum_solver = QuantumTSPSolver()
         self._hamiltonian_plotted = False
+        self._last_solver_mode = "uninitialized"
+        self._last_solver_message = "量子求解尚未执行"
         if not self._cluster_node_ids:
             raise DataValidationError("cluster_node_ids cannot be empty.")
         if len(self._cluster_node_ids) > 15:
@@ -234,7 +240,17 @@ class AsyncClusterSolver:
             used_iterations = k
             route = self._mock_quantum_tsp_solver(current)
             evaluation = self._evaluate_time_penalties(route)
-            iteration_logs.append(ClusterIterationLog(k, list(route), evaluation.travel_cost, evaluation.total_penalty, evaluation.objective))
+            iteration_logs.append(
+                ClusterIterationLog(
+                    k,
+                    list(route),
+                    evaluation.travel_cost,
+                    evaluation.total_penalty,
+                    evaluation.objective,
+                    self._last_solver_mode,
+                    self._last_solver_message,
+                )
+            )
             if best_eval is None or evaluation.objective < best_eval.objective:
                 best_eval = evaluation
                 best_weights = current.copy()
@@ -246,7 +262,21 @@ class AsyncClusterSolver:
             last_penalty = evaluation.total_penalty
         if best_eval is None:
             raise RuntimeError("Failed to obtain a cluster route.")
-        return ClusterSolveResult(cluster_id, best_eval.route, best_eval.arrival_times, best_eval.penalties, best_eval.total_penalty, best_eval.travel_cost, best_eval.objective, best_eval.finish_time, used_iterations, best_weights, iteration_logs)
+        return ClusterSolveResult(
+            cluster_id,
+            best_eval.route,
+            best_eval.arrival_times,
+            best_eval.penalties,
+            best_eval.total_penalty,
+            best_eval.travel_cost,
+            best_eval.objective,
+            best_eval.finish_time,
+            used_iterations,
+            best_weights,
+            iteration_logs,
+            any(log.solver_mode == "quantum" for log in iteration_logs),
+            iteration_logs[-1].solver_message if iteration_logs else "未生成任何迭代日志",
+        )
 
     def _submatrix(self) -> np.ndarray:
         idx = np.asarray(self._cluster_node_ids, dtype=int)
@@ -258,6 +288,8 @@ class AsyncClusterSolver:
 
         n = len(self._cluster_node_ids)
         if n == 1:
+            self._last_solver_mode = "classical"
+            self._last_solver_message = "单节点簇，直接返回，无需调用Kaiwu"
             return [self._cluster_node_ids[0]]
         try:
             order = self._quantum_solver.solve_tsp(weight_matrix, self._cluster_node_ids)
@@ -266,8 +298,12 @@ class AsyncClusterSolver:
                 final_energy = self._route_cost(order, weight_matrix)
                 self._quantum_solver.plot_hamiltonian_evolution(initial_energy, final_energy)
                 self._hamiltonian_plotted = True
+            self._last_solver_mode = "quantum"
+            self._last_solver_message = "Kaiwu求解成功"
             return order
-        except Exception:
+        except Exception as exc:
+            self._last_solver_mode = "classical_fallback"
+            self._last_solver_message = f"Kaiwu失败，已回退经典DP: {exc}"
             return self._solve_tsp_classically(weight_matrix)
 
     def _solve_tsp_classically(self, weight_matrix: np.ndarray) -> List[int]:
