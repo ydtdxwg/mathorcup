@@ -29,15 +29,24 @@ def main() -> None:
         elif stage == "cluster_start":
             log(
                 f"[Q3 实时] 开始子簇 {event['cluster_index']}/{event['cluster_count']} | "
-                f"cluster_id={event['cluster_id']} | 节点数={event['node_count']} | 节点={event['node_ids']}"
+                f"cluster_id={event['cluster_id']} | 节点数={event['node_count']}"
             )
         elif stage == "cluster_iteration":
-            log(
-                f"[Q3 实时] 子簇 {event['cluster_id']} 迭代 {event['iteration']}/{event['max_iterations']} | "
-                f"mode={event['solver_mode']} | objective={event['objective']:.2f} | "
-                f"travel={event['travel_cost']:.2f} | penalty={event['total_penalty']:.2f}"
-            )
-            log(f"            -> {event['solver_message']}")
+            if event["solver_mode"] == "quantum":
+                log(
+                    f"[Q3 实时] 子簇 {event['cluster_id']} 迭代 {event['iteration']}/{event['max_iterations']} | "
+                    f"mode=quantum | objective={event['objective']:.2f}"
+                )
+            elif event["iteration"] == 1:
+                log(
+                    f"[Q3 实时] 子簇 {event['cluster_id']} 已切换经典回退 | "
+                    f"原因={event['solver_message']}"
+                )
+            elif event["iteration"] == event["max_iterations"] or event["iteration"] % 5 == 0:
+                log(
+                    f"[Q3 实时] 子簇 {event['cluster_id']} 迭代 {event['iteration']}/{event['max_iterations']} | "
+                    f"mode={event['solver_mode']} | objective={event['objective']:.2f}"
+                )
         elif stage == "cluster_complete":
             log(
                 f"[Q3 实时] 完成子簇 {event['cluster_index']}/{event['cluster_count']} | "

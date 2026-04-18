@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Sequence
 
+import logging
 import kaiwu as kw
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,6 +11,9 @@ import numpy as np
 
 class QuantumTSPSolver:
     """Kaiwu-based QUBO TSP client with plotting support."""
+
+    def __init__(self) -> None:
+        logging.getLogger("kaiwu.sampler._simulated_annealing").setLevel(logging.WARNING)
 
     def solve_tsp(self, dist_matrix: np.ndarray, node_ids: Sequence[int]) -> List[int]:
         dist_matrix = np.asarray(dist_matrix, dtype=np.float64)
@@ -46,11 +50,12 @@ class QuantumTSPSolver:
         worker = kw.sampler.SimulatedAnnealingSampler()
         solver = kw.solver.SimpleSolver(worker)
         sol_dict, _qubo_val = solver.solve_qubo(qubo_model)
+        numeric_x = self._extract_numeric_array(sol_dict, x)
 
         route_by_step: list[int | None] = [None] * n
         for i in range(n):
             for t in range(n):
-                if self._solution_value(sol_dict, x[i, t], i, t) > 0.5:
+                if float(numeric_x[i, t]) > 0.5:
                     route_by_step[t] = node_ids[i]
 
         if any(node is None for node in route_by_step):
@@ -87,17 +92,14 @@ class QuantumTSPSolver:
             raise RuntimeError("Kaiwu SDK 未暴露 QuboModel，请检查安装版本。")
         return qubo_model_cls()
 
-    def _solution_value(self, sol_dict: dict, variable: object, i: int, t: int) -> float:
-        raw = sol_dict.get(variable)
-        if raw is not None:
-            return float(raw)
-        candidate_keys = [
-            f"x[{i},{t}]",
-            f"x[{i}][{t}]",
-            f"x_{i}_{t}",
-            str(variable),
-        ]
-        for key in candidate_keys:
-            if key in sol_dict:
-                return float(sol_dict[key])
-        return 0.0
+    def _extract_numeric_array(self, sol_dict: dict, variable_array: object) -> np.ndarray:
+        try:
+            values = kw.core.get_array_val(variable_array, sol_dict)
+            return np.asarray(values, dtype=np.float64)
+        except Exception:
+            pass
+        try:
+            values = kw.core.get_array_val(sol_dict, variable_array)
+            return np.asarray(values, dtype=np.float64)
+        except Exception as exc:
+            raise RuntimeError(f"Kaiwu结果解码失败: {exc}") from exc
