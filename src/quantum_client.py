@@ -6,6 +6,7 @@ from typing import List, Sequence
 import logging
 import kaiwu as kw
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 import numpy as np
 
 
@@ -14,6 +15,8 @@ class QuantumTSPSolver:
 
     def __init__(self) -> None:
         logging.getLogger("kaiwu.sampler._simulated_annealing").setLevel(logging.WARNING)
+        self._cn_font = self._pick_font(["SimSun", "Songti SC", "STSong"])
+        self._en_font = self._pick_font(["Times New Roman", "TimesNewRomanPSMT", "Nimbus Roman"])
 
     def solve_tsp(self, dist_matrix: np.ndarray, node_ids: Sequence[int]) -> List[int]:
         dist_matrix = np.asarray(dist_matrix, dtype=np.float64)
@@ -75,11 +78,14 @@ class QuantumTSPSolver:
         plt.figure(figsize=(10, 5.5))
         plt.plot(steps, energies, color="#1f77b4", linewidth=2.0, label="哈密顿量期望")
         plt.scatter([0, len(steps) - 1], [initial_energy, final_energy], color=["#d62728", "#2ca02c"], zorder=3)
-        plt.title("哈密顿量随时间演化曲线", fontsize=14)
-        plt.xlabel("退火步数", fontsize=12)
-        plt.ylabel("能量 / 哈密顿量", fontsize=12)
+        plt.xlabel("退火步数", fontsize=12, fontproperties=self._cn_font)
+        plt.ylabel("能量 / 哈密顿量", fontsize=12, fontproperties=self._cn_font)
+        plt.xticks(fontproperties=self._en_font, fontsize=10)
+        plt.yticks(fontproperties=self._en_font, fontsize=10)
         plt.grid(True, linestyle="--", alpha=0.35)
-        plt.legend()
+        legend = plt.legend(prop=self._cn_font)
+        for text in legend.get_texts():
+            text.set_fontproperties(self._cn_font)
         plt.tight_layout()
         plt.savefig(output_path, dpi=200, bbox_inches="tight")
         plt.close()
@@ -103,3 +109,12 @@ class QuantumTSPSolver:
             return np.asarray(values, dtype=np.float64)
         except Exception as exc:
             raise RuntimeError(f"Kaiwu结果解码失败: {exc}") from exc
+
+    def _pick_font(self, font_names: Sequence[str]) -> font_manager.FontProperties:
+        for font_name in font_names:
+            try:
+                font_path = font_manager.findfont(font_name, fallback_to_default=False)
+                return font_manager.FontProperties(fname=font_path)
+            except Exception:
+                continue
+        return font_manager.FontProperties()
