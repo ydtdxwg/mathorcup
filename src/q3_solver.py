@@ -12,8 +12,10 @@ from sklearn.cluster import SpectralClustering
 
 try:
     from .data_pipeline import DataValidationError, LogisticsInstance, TemporalCompatibilityGraph
+    from .quantum_client import QuantumTSPSolver
 except ImportError:
     from data_pipeline import DataValidationError, LogisticsInstance, TemporalCompatibilityGraph
+    from quantum_client import QuantumTSPSolver
 
 
 @dataclass(frozen=True, slots=True)
@@ -213,6 +215,8 @@ class AsyncClusterSolver:
         self._cluster_node_ids = list(cluster_node_ids)
         self._max_iterations = max_iterations
         self._tolerance = tolerance
+        self._quantum_solver = QuantumTSPSolver()
+        self._hamiltonian_plotted = False
         if not self._cluster_node_ids:
             raise DataValidationError("cluster_node_ids cannot be empty.")
         if len(self._cluster_node_ids) > 15:
@@ -250,11 +254,24 @@ class AsyncClusterSolver:
         return np.where(np.isfinite(matrix), matrix, 1e6)
 
     def _mock_quantum_tsp_solver(self, weight_matrix: np.ndarray) -> List[int]:
-        """Exact pure-space Hamiltonian path solver on the cluster graph."""
+        """Kaiwu-backed TSP solver with classical DP fallback."""
 
         n = len(self._cluster_node_ids)
         if n == 1:
             return [self._cluster_node_ids[0]]
+        try:
+            order = self._quantum_solver.solve_tsp(weight_matrix, self._cluster_node_ids)
+            if not self._hamiltonian_plotted:
+                initial_energy = float(np.sum(weight_matrix))
+                final_energy = self._route_cost(order, weight_matrix)
+                self._quantum_solver.plot_hamiltonian_evolution(initial_energy, final_energy)
+                self._hamiltonian_plotted = True
+            return order
+        except Exception:
+            return self._solve_tsp_classically(weight_matrix)
+
+    def _solve_tsp_classically(self, weight_matrix: np.ndarray) -> List[int]:
+        n = len(self._cluster_node_ids)
         full = (1 << n) - 1
         dp = np.full((1 << n, n), np.inf, dtype=np.float64)
         parent = np.full((1 << n, n), -1, dtype=int)
@@ -282,6 +299,15 @@ class AsyncClusterSolver:
             last = prev
         order.reverse()
         return order
+
+    def _route_cost(self, route: Sequence[int], weight_matrix: np.ndarray) -> float:
+        local_pos = {node_id: idx for idx, node_id in enumerate(self._cluster_node_ids)}
+        total = 0.0
+        for prev_id, node_id in zip(route[:-1], route[1:]):
+            total += float(weight_matrix[local_pos[prev_id], local_pos[node_id]])
+        if route:
+            total += float(weight_matrix[local_pos[route[-1]], local_pos[route[0]]])
+        return total
 
     def _evaluate_time_penalties(self, route: Sequence[int], start_time: float | None = None) -> RouteEvaluation:
         """Roll out a route with no waiting and quadratic early/late penalties."""
@@ -458,4 +484,4 @@ class Q3Solver:
         return Q3Solution(partition, cluster_results, global_result)
 
 
-__all__: List[str] = ["AsyncClusterSolver", "ClusterIterationLog", "ClusterPartition", "ClusterQuality", "ClusterSolveResult", "GlobalRouteResult", "GlobalStitcher", "GraphClusterer", "Q3Solution", "Q3Solver", "RouteEvaluation"]
+__all__: List[str] = ["AsyncClusterSolver", "ClusterIterationLog", "ClusterPartition", "ClusterQuality", "ClusterSolveResult", "GlobalRouteResult", "GlobalStitcher", "GraphClusterer", "Q3Solution", "Q3Solver", "RouteEvaluation", "QuantumTSPSolver"]

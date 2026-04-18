@@ -128,7 +128,7 @@ class MasterProblem:
         for customer_id in self._instance.customer_ids:
             constr = model.addConstr(gp.quicksum(lambdas[idx] for idx, column in enumerate(self._columns) if customer_id in column.customers) >= 1.0, name=f"cover_{customer_id}")
             cover_constraints.append(constr)
-        vehicle_constraint = model.addConstr(gp.quicksum(lambdas.values()) <= self._v_max, name="vehicle_limit")
+        vehicle_constraint = model.addConstr(gp.quicksum(lambdas.values()) == self._v_max, name="vehicle_limit")
         return model, lambdas, cover_constraints, vehicle_constraint
 
 
@@ -223,7 +223,7 @@ class PricingSubproblem:
             current_time += prev.service_time + travel
             penalties += self._node_penalty(node_id, current_time)
         travel_cost += float(self._instance.travel_time_matrix[route[-1], 0])
-        cost = travel_cost + penalties + VEHICLE_FIXED_COST
+        cost = travel_cost + penalties
         return RouteColumn(route=list(route), customers=sorted(route), cost=cost, load=load)
 
     def _node_penalty(self, node_id: int, arrival_time: float) -> float:
@@ -322,7 +322,7 @@ class QCGEngine:
     def _build_initial_column(self, route: Sequence[int]) -> RouteColumn:
         result = AsyncClusterSolver(self._instance, route).solve(cluster_id=-1)
         travel_cost = float(self._depot_augmented_cost(result.route))
-        cost = travel_cost + result.total_penalty + VEHICLE_FIXED_COST
+        cost = travel_cost + result.total_penalty
         load = float(sum(self._instance.get_node(node_id).demand for node_id in result.route))
         return RouteColumn(route=list(result.route), customers=sorted(result.route), cost=cost, load=load)
 
